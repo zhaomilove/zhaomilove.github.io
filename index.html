@@ -179,8 +179,11 @@ body{font-family:'Noto Sans SC',sans-serif;background:#0f0a1a;color:#fff;overflo
       </div>
       <div class="input-group">
         <label>横幅背景图（可选，留空用渐变）</label>
-        <label class="file-btn">选择图片<input type="file" id="cfgBanner" accept="image/*"></label>
-        <span id="bannerName" style="font-size:11px;color:rgba(255,255,255,0.4);margin-left:8px">未选择</span>
+        <div style="display:flex;align-items:center;gap:8px">
+          <label class="file-btn">选择图片<input type="file" id="cfgBanner" accept="image/*"></label>
+          <button class="file-btn" id="cfgBannerClear" onclick="clearBanner()" style="display:none">删除图片</button>
+          <span id="bannerName" style="font-size:11px;color:rgba(255,255,255,0.4)">未选择</span>
+        </div>
       </div>
     </div>
 
@@ -1397,6 +1400,7 @@ function resetAll() {
   document.getElementById("cfgFooter").value = state.footer;
   document.getElementById("cfgBanner").value = "";
   document.getElementById("bannerName").textContent = "未选择";
+  document.getElementById("cfgBannerClear").style.display = "none";
   renderEntries();
   debouncedRender();
 }
@@ -1420,6 +1424,7 @@ function bindConfig() {
     const file = this.files[0];
     if (!file) return;
     document.getElementById("bannerName").textContent = file.name;
+    document.getElementById("cfgBannerClear").style.display = "";
     const reader = new FileReader();
     reader.onload = function(e) {
       state.banner = e.target.result;
@@ -1430,12 +1435,22 @@ function bindConfig() {
   });
 }
 
+function clearBanner() {
+  state.banner = null;
+  document.getElementById("cfgBanner").value = "";
+  document.getElementById("bannerName").textContent = "未选择";
+  document.getElementById("cfgBannerClear").style.display = "none";
+  debouncedRender();
+  debouncedSave();
+}
+
 // ===== Init =====
 async function init() {
   loadData();
   if (!state.pkgDisplayMode) state.pkgDisplayMode = "name";
   setPkgMode(state.pkgDisplayMode);
   bindConfig();
+  if (state.banner) document.getElementById("cfgBannerClear").style.display = "";
   renderEntries();
   await renderPoster();
 }
