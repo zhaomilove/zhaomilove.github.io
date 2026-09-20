@@ -1,0 +1,1396 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>甜蜜情侣榜生成器</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Great+Vibes&family=Dancing+Script:wght@600;700&family=Parisienne&family=Tangerine:wght@700&family=Alex+Brush&family=Long+Cang&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{--pink:#E87B9A;--pink-d:#D45A8A;--pink-l:#FFB6C1;--pink-b:#FF69B4;--purple:#C9A8E0;--purple-d:#9B7BB8;--gold:#D4AF37;--gold-l:#FFD700}
+body{font-family:'Noto Sans SC',sans-serif;background:#0f0a1a;color:#fff;overflow:hidden;height:100vh}
+.app{display:flex;height:100vh}
+
+/* ===== Control Panel ===== */
+.control-panel{width:440px;min-width:440px;height:100vh;overflow-y:auto;background:rgba(25,18,40,0.97);backdrop-filter:blur(20px);border-right:1px solid rgba(255,255,255,0.08);padding:20px}
+.control-panel::-webkit-scrollbar{width:6px}
+.control-panel::-webkit-scrollbar-track{background:transparent}
+.control-panel::-webkit-scrollbar-thumb{background:rgba(255,107,180,0.3);border-radius:3px}
+
+.panel-header{text-align:center;margin-bottom:20px;padding-bottom:15px;border-bottom:1px solid rgba(255,255,255,0.1)}
+.panel-header h1{font-size:22px;font-weight:700;background:linear-gradient(135deg,#FF69B4,#C9A8E0);-webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
+.panel-header p{font-size:12px;color:rgba(255,255,255,0.5)}
+
+.section{margin-bottom:20px}
+.section h2{font-size:14px;color:rgba(255,255,255,0.7);margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.section h2::before{content:'';width:4px;height:16px;background:linear-gradient(180deg,#FF69B4,#C9A8E0);border-radius:2px}
+
+.input-group{margin-bottom:10px}
+.input-group label{display:block;font-size:12px;color:rgba(255,255,255,0.6);margin-bottom:4px}
+.input-field{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 12px;color:#fff;font-size:13px;width:100%;transition:border-color 0.2s}
+.input-field:focus{outline:none;border-color:var(--pink-b)}
+.input-field::placeholder{color:rgba(255,255,255,0.3)}
+
+.row{display:flex;gap:10px}
+.row > *{flex:1}
+
+.entry-card{background:rgba(255,255,255,0.05);border:1px solid rgba(255,255,255,0.1);border-radius:12px;padding:14px;margin-bottom:10px;position:relative}
+.entry-card .entry-num{position:absolute;top:-8px;left:14px;background:linear-gradient(135deg,#FF69B4,#E87B9A);color:#fff;font-size:11px;font-weight:700;padding:2px 10px;border-radius:10px}
+.entry-card .entry-actions{position:absolute;top:10px;right:10px;display:flex;gap:4px}
+.entry-card .btn-move{background:rgba(255,107,180,0.15);border:1px solid rgba(255,107,180,0.25);color:rgba(255,200,230,0.9);border-radius:6px;padding:3px 8px;font-size:13px;cursor:pointer;transition:all 0.2s;line-height:1}
+.entry-card .btn-move:hover{background:rgba(255,107,180,0.3);color:#fff}
+.entry-card .btn-move:disabled{opacity:0.3;cursor:not-allowed}
+.entry-card .btn-remove{background:rgba(255,80,80,0.2);border:1px solid rgba(255,80,80,0.3);color:rgba(255,150,150,0.8);border-radius:6px;padding:3px 8px;font-size:11px;cursor:pointer;transition:all 0.2s}
+.entry-card .btn-remove:hover{background:rgba(255,80,80,0.3);color:rgba(255,200,200,1)}
+.entry-card .entry-body{margin-top:8px}
+.entry-card .pair{display:flex;gap:10px;margin-top:8px}
+.entry-card .side{flex:1;background:rgba(255,255,255,0.03);border-radius:8px;padding:8px}
+.entry-card .side-label{font-size:10px;color:rgba(255,255,255,0.4);margin-bottom:4px}
+.entry-card .avatar-upload{display:flex;align-items:center;gap:8px;margin-top:6px}
+.entry-card .avatar-preview{width:40px;height:40px;border-radius:50%;background:rgba(255,255,255,0.1);display:flex;align-items:center;justify-content:center;font-size:18px;overflow:hidden;border:2px solid rgba(255,107,180,0.3);flex-shrink:0}
+.entry-card .avatar-preview img{width:100%;height:100%;object-fit:cover}
+.file-btn{background:rgba(255,107,180,0.15);border:1px solid rgba(255,107,180,0.3);color:rgba(255,200,230,0.9);border-radius:6px;padding:6px 10px;font-size:11px;cursor:pointer;transition:all 0.2s;white-space:nowrap}
+.file-btn:hover{background:rgba(255,107,180,0.25)}
+.file-btn input{display:none}
+
+.pkg-quick{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+.pkg-chip{background:rgba(255,107,180,0.12);border:1px solid rgba(255,107,180,0.25);color:rgba(255,200,230,0.8);border-radius:12px;padding:3px 10px;font-size:10px;cursor:pointer;transition:all 0.2s}
+.pkg-chip:hover{background:rgba(255,107,180,0.25);color:#fff}
+.pkg-chip.active{background:linear-gradient(135deg,#FF69B4,#E87B9A);color:#fff;border-color:transparent}
+
+/* Package display mode toggle */
+.pkg-mode-toggle{display:flex;gap:0;margin-bottom:10px;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.12);border-radius:10px;padding:3px}
+.pkg-mode-btn{flex:1;background:transparent;border:none;color:rgba(255,255,255,0.5);border-radius:8px;padding:8px 10px;font-size:12px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit;text-align:center}
+.pkg-mode-btn.active{background:linear-gradient(135deg,#FF69B4,#E87B9A);color:#fff;box-shadow:0 2px 10px rgba(255,107,180,0.3)}
+.pkg-mode-btn:hover:not(.active){color:rgba(255,255,255,0.8)}
+
+.btn{border:none;border-radius:10px;padding:10px 18px;font-size:14px;font-weight:600;cursor:pointer;transition:all 0.2s;font-family:inherit}
+.btn-add{background:rgba(255,255,255,0.08);border:1px dashed rgba(255,255,255,0.25);color:rgba(255,255,255,0.7);width:100%;margin-top:4px}
+.btn-add:hover{background:rgba(255,255,255,0.12);border-color:rgba(255,107,180,0.4)}
+
+/* Insert row divider between entries */
+.insert-divider{display:flex;align-items:center;gap:8px;margin:0;padding:4px 0;cursor:pointer}
+.insert-divider .insert-line{flex:1;height:1px;background:linear-gradient(90deg,transparent,rgba(255,107,180,0.3),transparent);transition:height 0.2s,background 0.2s}
+.insert-divider:hover .insert-line{height:2px;background:linear-gradient(90deg,transparent,rgba(255,107,180,0.6),transparent)}
+.insert-divider .insert-btn{width:28px;height:28px;border-radius:50%;background:rgba(255,107,180,0.12);border:1px dashed rgba(255,107,180,0.4);color:rgba(255,200,230,0.8);display:flex;align-items:center;justify-content:center;font-size:16px;font-weight:bold;flex-shrink:0;transition:all 0.2s;line-height:1}
+.insert-divider:hover .insert-btn{background:linear-gradient(135deg,#FF69B4,#E87B9A);color:#fff;border-style:solid;border-color:transparent;box-shadow:0 2px 12px rgba(255,107,180,0.4);transform:scale(1.1)}
+.insert-divider .insert-label{font-size:11px;color:rgba(255,200,230,0.4);transition:color 0.2s;white-space:nowrap}
+.insert-divider:hover .insert-label{color:rgba(255,200,230,0.9)}
+.btn-export{background:linear-gradient(135deg,#FF69B4,#E87B9A);color:#fff;width:100%;font-size:16px;padding:14px;box-shadow:0 4px 20px rgba(255,107,180,0.3)}
+.btn-export:hover{transform:translateY(-1px);box-shadow:0 6px 25px rgba(255,107,180,0.4)}
+.btn-export:disabled{opacity:0.5;cursor:not-allowed;transform:none}
+.btn-reset{background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);color:rgba(255,255,255,0.6);width:100%;margin-top:8px}
+.btn-reset:hover{background:rgba(255,255,255,0.12)}
+
+.export-row{display:flex;gap:10px}
+.export-row > *{flex:1}
+
+.save-status{font-size:11px;color:rgba(100,200,100,0.6);text-align:center;margin-top:4px;min-height:16px}
+
+/* ===== Preview Area ===== */
+.preview-area{flex:1;background:#0a0515;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:20px}
+.preview-area::-webkit-scrollbar{width:6px}
+.preview-area::-webkit-scrollbar-thumb{background:rgba(255,107,180,0.3);border-radius:3px}
+.preview-title{font-size:13px;color:rgba(255,255,255,0.4);margin-bottom:12px}
+.preview-wrapper{position:relative;box-shadow:0 10px 50px rgba(0,0,0,0.6);border-radius:4px;overflow:hidden}
+#posterCanvas{display:block;width:460px;height:auto;max-width:100%}
+.loading-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.7);display:none;align-items:center;justify-content:center;z-index:9999}
+.loading-overlay.show{display:flex}
+.loading-spinner{width:50px;height:50px;border:4px solid rgba(255,107,180,0.2);border-top-color:#FF69B4;border-radius:50%;animation:spin 0.8s linear infinite}
+.loading-text{color:#fff;margin-top:16px;font-size:14px}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+/* ===== Mobile Save Overlay ===== */
+.save-overlay{position:fixed;top:0;left:0;width:100%;height:100%;background:rgba(0,0,0,0.92);display:none;flex-direction:column;align-items:center;z-index:10000;-webkit-overflow-scrolling:touch;overflow-y:auto}
+.save-overlay.show{display:flex}
+.save-overlay .save-header{width:100%;text-align:center;padding:16px 16px 8px;flex-shrink:0}
+.save-overlay .save-title{font-size:20px;font-weight:700;color:#fff;margin-bottom:6px}
+.save-overlay .save-hint{font-size:13px;color:rgba(255,200,230,0.7);line-height:1.6}
+.save-overlay .save-hint b{color:#FFB6C1}
+.save-overlay .save-img-wrap{flex-shrink:0;margin:12px auto;max-width:94vw}
+.save-overlay .save-img-wrap img{width:100%;height:auto;display:block;border-radius:6px;box-shadow:0 8px 40px rgba(255,107,180,0.2)}
+.save-overlay .save-actions{width:100%;max-width:400px;padding:12px 20px 30px;flex-shrink:0;display:flex;flex-direction:column;gap:10px}
+.save-overlay .btn-save-download{background:linear-gradient(135deg,#FF69B4,#E87B9A);color:#fff;border:none;border-radius:12px;padding:14px;font-size:16px;font-weight:600;cursor:pointer;font-family:inherit}
+.save-overlay .btn-save-close{background:rgba(255,255,255,0.1);color:rgba(255,255,255,0.7);border:1px solid rgba(255,255,255,0.15);border-radius:12px;padding:12px;font-size:14px;cursor:pointer;font-family:inherit}
+
+/* ===== Mobile Layout ===== */
+.mobile-tabs{display:none}
+@media(max-width:900px){
+  body{overflow:auto;height:auto}
+  .app{flex-direction:column;height:auto;min-height:100vh}
+  .control-panel{width:100%;min-width:auto;height:auto;max-height:none;padding:16px 14px 80px}
+  .preview-area{height:auto;min-height:60vh;padding:12px}
+  #posterCanvas{width:100%;max-width:360px}
+  .mobile-tabs{display:flex;position:fixed;bottom:0;left:0;width:100%;background:rgba(25,18,40,0.98);backdrop-filter:blur(20px);border-top:1px solid rgba(255,255,255,0.1);z-index:100;padding:8px 12px;padding-bottom:max(8px,env(safe-area-inset-bottom))}
+  .mobile-tab{flex:1;background:rgba(255,255,255,0.06);border:1px solid rgba(255,255,255,0.1);color:rgba(255,255,255,0.5);border-radius:10px;padding:10px;font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;text-align:center}
+  .mobile-tab.active{background:linear-gradient(135deg,#FF69B4,#E87B9A);color:#fff;border-color:transparent}
+  .mobile-tab + .mobile-tab{margin-left:8px}
+  .panel-view,.preview-view{display:none}
+  .panel-view.active,.preview-view.active{display:block}
+  .preview-view.active{display:flex}
+  .btn-export{position:fixed;bottom:72px;left:12px;right:12px;width:auto;z-index:99;max-width:calc(100% - 24px)}
+  .save-overlay .save-actions{padding-bottom:max(20px,env(safe-area-inset-bottom))}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="control-panel panel-view active" id="controlPanel">
+    <div class="panel-header">
+      <h1>甜蜜情侣榜生成器</h1>
+      <p>输入信息 · 自动排版 · 960×2240海报</p>
+    </div>
+
+    <div class="section">
+      <h2>海报设置</h2>
+      <div class="input-group">
+        <label>主标题</label>
+        <input type="text" class="input-field" id="cfgTitle" value="甜蜜情侣榜">
+      </div>
+      <div class="input-group">
+        <label>英文副标题</label>
+        <input type="text" class="input-field" id="cfgSubtitle" value="Sweet Couples List">
+      </div>
+      <div class="input-group">
+        <label>装饰文字（横幅）</label>
+        <input type="text" class="input-field" id="cfgDeco" value="Every moment with you is sweet love">
+      </div>
+      <div class="row">
+        <div class="input-group">
+          <label>左侧标签</label>
+          <input type="text" class="input-field" id="cfgCatL" value="新婚情侣">
+        </div>
+        <div class="input-group">
+          <label>右侧标签</label>
+          <input type="text" class="input-field" id="cfgCatR" value="置顶祝福">
+        </div>
+      </div>
+      <div class="row">
+        <div class="input-group">
+          <label>总席位</label>
+          <input type="number" class="input-field" id="cfgSlots" value="10" min="1" max="20">
+        </div>
+        <div class="input-group">
+          <label>底部文字</label>
+          <input type="text" class="input-field" id="cfgFooter" value="虚位以待 · 期待你们的官宣">
+        </div>
+      </div>
+      <div class="input-group">
+        <label>横幅背景图（可选，留空用渐变）</label>
+        <label class="file-btn">选择图片<input type="file" id="cfgBanner" accept="image/*"></label>
+        <span id="bannerName" style="font-size:11px;color:rgba(255,255,255,0.4);margin-left:8px">未选择</span>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>情侣信息（可上下调换位置）</h2>
+      <div class="pkg-mode-toggle">
+        <button class="pkg-mode-btn active" id="pkgModeName" onclick="setPkgMode('name')">显示套餐名</button>
+        <button class="pkg-mode-btn" id="pkgModeAmount" onclick="setPkgMode('amount')">显示金额</button>
+        <button class="pkg-mode-btn" id="pkgModeBoth" onclick="setPkgMode('both')">套餐名+金额</button>
+      </div>
+      <div id="entriesContainer"></div>
+      <button class="btn btn-add" onclick="addEntry()">+ 添加情侣</button>
+    </div>
+
+    <div class="section">
+      <div class="export-row">
+        <button class="btn btn-export" id="exportBtn" onclick="exportImage()">生成海报图片</button>
+      </div>
+      <button class="btn btn-reset" onclick="resetAll()">重置全部</button>
+      <div class="save-status" id="saveStatus"></div>
+    </div>
+  </div>
+
+  <div class="preview-area preview-view" id="previewView">
+    <div class="preview-title">实时预览（960 × 2240 px）</div>
+    <div class="preview-wrapper">
+      <canvas id="posterCanvas" width="960" height="2240"></canvas>
+    </div>
+  </div>
+</div>
+
+<div class="mobile-tabs">
+  <button class="mobile-tab active" onclick="switchView('panel')">编辑信息</button>
+  <button class="mobile-tab" onclick="switchView('preview')">预览海报</button>
+</div>
+
+<div class="save-overlay" id="saveOverlay">
+  <div class="save-header">
+    <div class="save-title">海报已生成</div>
+    <div class="save-hint">
+      <b>长按图片</b>，选择「存储图像」/「保存到相册」<br>
+      即可将海报保存到手机相册
+    </div>
+  </div>
+  <div class="save-img-wrap">
+    <img id="saveImage" src="" alt="情侣榜海报">
+  </div>
+  <div class="save-actions">
+    <button class="btn-save-download" id="btnSaveDownload">下载图片</button>
+    <button class="btn-save-close" onclick="closeSaveOverlay()">关闭</button>
+  </div>
+</div>
+
+<div class="loading-overlay" id="loadingOverlay">
+  <div style="text-align:center">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">正在生成海报...</div>
+  </div>
+</div>
+
+<script>
+// ===== State =====
+const DEFAULT_STATE = {
+  title: "甜蜜情侣榜",
+  subtitle: "Sweet Couples List",
+  deco: "Every moment with you is sweet love",
+  catL: "新婚情侣",
+  catR: "置顶祝福",
+  slots: 10,
+  footer: "虚位以待 · 期待你们的官宣",
+  banner: null,
+  entries: [
+    { num:"001", nickL:"阿泽", nickR:"小雅", avatarL:null, avatarR:null, pkg:"169" },
+    { num:"002", nickL:"星河", nickR:"月见", avatarL:null, avatarR:null, pkg:"299" },
+    { num:"003", nickL:"沫沫", nickR:"阿离", avatarL:null, avatarR:null, pkg:"1314" },
+  ]
+};
+
+let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+state.pkgDisplayMode = "name"; // "name" or "amount"
+
+// ===== Layout Constants =====
+const W = 960, H = 2240;
+const BANNER_H = 500;
+const TABS_H = 70;
+const FOOTER_H = 350;
+const ENTRIES_H = H - BANNER_H - TABS_H - FOOTER_H; // 1320
+
+const PKG_PRESETS = [
+  { name:"甜蜜官宣", amount:"169" },
+  { name:"爱你久久", amount:"299" },
+  { name:"我唯爱你", amount:"520" },
+  { name:"久伴余生", amount:"999" },
+  { name:"一生一世", amount:"1314" },
+  { name:"真爱永恒", amount:"1888" },
+];
+
+const COLORS = {
+  pinkMain:"#E87B9A", pinkDark:"#D45A8A", pinkLight:"#FFB6C1",
+  pinkBright:"#FF69B4", purple:"#C9A8E0", purpleDark:"#9B7BB8",
+  white:"#FFFFFF", cream:"#FFF5F8",
+  bgTop:"#FFF0F5", bgMid:"#F5E0F0", bgBot:"#E8D5F0",
+  gold:"#D4AF37", goldLight:"#FFD700", goldDeep:"#B8860B",
+};
+
+// ===== Data Persistence (localStorage) =====
+const STORAGE_KEY = "zhaomiqinglv_data_v2";
+
+function saveData() {
+  try {
+    const data = {
+      title: state.title, subtitle: state.subtitle, deco: state.deco,
+      catL: state.catL, catR: state.catR, slots: state.slots, footer: state.footer,
+      banner: state.banner, pkgDisplayMode: state.pkgDisplayMode || "name",
+      entries: state.entries.map(e => ({
+        num: e.num, nickL: e.nickL, nickR: e.nickR,
+        avatarL: e.avatarL, avatarR: e.avatarR, pkg: e.pkg
+      }))
+    };
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+    const el = document.getElementById("saveStatus");
+    if (el) { el.textContent = "✓ 数据已自动保存"; el.style.color = "rgba(100,200,100,0.6)"; }
+    clearTimeout(window._saveStatusTimer);
+    window._saveStatusTimer = setTimeout(() => { if (el) el.textContent = ""; }, 2000);
+  } catch(e) { console.warn("Save failed:", e); }
+}
+
+function loadData() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return false;
+    const data = JSON.parse(raw);
+    if (!data || typeof data !== "object") return false;
+    // Migrate from old key if needed
+    const oldRaw = localStorage.getItem("zhaomiqinglv_data");
+    if (oldRaw && !raw) {
+      Object.assign(state, JSON.parse(oldRaw));
+    } else {
+      Object.assign(state, data);
+    }
+    if (!Array.isArray(state.entries)) state.entries = [];
+    return true;
+  } catch(e) { return false; }
+}
+
+let _saveTimer = null;
+function debouncedSave() {
+  clearTimeout(_saveTimer);
+  _saveTimer = setTimeout(saveData, 500);
+}
+
+// ===== Image Cache =====
+const imgCache = {};
+function getImg(dataUrl) {
+  if (!dataUrl) return null;
+  if (imgCache[dataUrl] && imgCache[dataUrl].complete) return imgCache[dataUrl];
+  if (!imgCache[dataUrl]) {
+    const img = new Image();
+    img.crossOrigin = "anonymous";
+    img.src = dataUrl;
+    imgCache[dataUrl] = img;
+  }
+  return imgCache[dataUrl];
+}
+
+async function preloadImages() {
+  const urls = [];
+  if (state.banner) urls.push(state.banner);
+  state.entries.forEach(e => {
+    if (e.avatarL) urls.push(e.avatarL);
+    if (e.avatarR) urls.push(e.avatarR);
+  });
+  await Promise.all(urls.map(url => new Promise(resolve => {
+    const img = getImg(url);
+    if (img.complete && img.naturalWidth > 0) return resolve();
+    img.onload = () => resolve();
+    img.onerror = () => resolve();
+  })));
+}
+
+async function ensureFonts() {
+  if (!document.fonts) return;
+  try {
+    await document.fonts.ready;
+    await Promise.all([
+      document.fonts.load("120px 'ZCOOL KuaiLe'"),
+      document.fonts.load("50px 'Great Vibes'"),
+      document.fonts.load("42px 'Parisienne'"),
+      document.fonts.load("38px 'Ma Shan Zheng'"),
+      document.fonts.load("32px 'Dancing Script'"),
+      document.fonts.load("30px 'Long Cang'"),
+      document.fonts.load("28px 'Noto Sans SC'"),
+    ]);
+  } catch(e) {}
+}
+
+// ===== Canvas Utilities =====
+function roundRect(ctx, x, y, w, h, r) {
+  ctx.beginPath();
+  ctx.moveTo(x+r, y);
+  ctx.lineTo(x+w-r, y);
+  ctx.quadraticCurveTo(x+w, y, x+w, y+r);
+  ctx.lineTo(x+w, y+h-r);
+  ctx.quadraticCurveTo(x+w, y+h, x+w-r, y+h);
+  ctx.lineTo(x+r, y+h);
+  ctx.quadraticCurveTo(x, y+h, x, y+h-r);
+  ctx.lineTo(x, y+r);
+  ctx.quadraticCurveTo(x, y, x+r, y);
+  ctx.closePath();
+}
+
+function traceHeart(ctx, cx, cy, size) {
+  const s = size / 80;
+  ctx.beginPath();
+  ctx.moveTo(cx, cy + 35*s);
+  ctx.bezierCurveTo(cx, cy+35*s, cx-40*s, cy+10*s, cx-40*s, cy-15*s);
+  ctx.bezierCurveTo(cx-40*s, cy-32*s, cx-28*s, cy-40*s, cx-16*s, cy-40*s);
+  ctx.bezierCurveTo(cx-6*s, cy-40*s, cx, cy-32*s, cx, cy-22*s);
+  ctx.bezierCurveTo(cx, cy-32*s, cx+6*s, cy-40*s, cx+16*s, cy-40*s);
+  ctx.bezierCurveTo(cx+28*s, cy-40*s, cx+40*s, cy-32*s, cx+40*s, cy-15*s);
+  ctx.bezierCurveTo(cx+40*s, cy+10*s, cx, cy+35*s, cx, cy+35*s);
+  ctx.closePath();
+}
+
+function drawStrokedText(ctx, text, x, y, font, fill, stroke, sw, align="center") {
+  ctx.font = font;
+  ctx.textAlign = align;
+  ctx.textBaseline = "middle";
+  ctx.lineJoin = "round";
+  ctx.lineWidth = sw;
+  ctx.strokeStyle = stroke;
+  ctx.strokeText(text, x, y);
+  ctx.fillStyle = fill;
+  ctx.fillText(text, x, y);
+}
+
+function drawSparkle(ctx, x, y, size, color, alpha=1) {
+  ctx.save();
+  ctx.globalAlpha = alpha;
+  ctx.translate(x, y);
+  ctx.fillStyle = color;
+  // 4-point star sparkle
+  ctx.beginPath();
+  for (let i = 0; i < 4; i++) {
+    const angle = (i * Math.PI) / 2;
+    const x1 = Math.cos(angle) * size;
+    const y1 = Math.sin(angle) * size;
+    const x2 = Math.cos(angle + Math.PI/4) * size * 0.25;
+    const y2 = Math.sin(angle + Math.PI/4) * size * 0.25;
+    if (i === 0) ctx.moveTo(x1, y1);
+    else ctx.lineTo(x1, y1);
+    ctx.lineTo(x2, y2);
+  }
+  ctx.closePath();
+  ctx.fill();
+  ctx.restore();
+}
+
+// ===== Ornate Floral Avatar Frame =====
+function drawOrnateAvatar(ctx, cx, cy, radius, img, isEmpty) {
+  const r = Math.max(15, radius);
+
+  if (isEmpty) {
+    // Light fill - dreamy
+    ctx.beginPath();
+    ctx.arc(cx, cy, r, 0, Math.PI * 2);
+    ctx.fillStyle = "rgba(255,158,199,0.2)";
+    ctx.fill();
+    // Dreamy dashed scalloped border
+    drawScallopedBorder(ctx, cx, cy, r, "rgba(201,168,224,0.45)", 3, true);
+    // "虚位以待" text - dreamy faded
+    ctx.fillStyle = "rgba(180,70,110,0.5)";
+    ctx.font = `bold ${Math.round(r * 0.28)}px 'Noto Sans SC', sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("虚位", cx, cy - r * 0.12);
+    ctx.fillText("以待", cx, cy + r * 0.22);
+    return;
+  }
+
+  // === Outer dreamy glow ===
+  const glowGrad = ctx.createRadialGradient(cx, cy, r, cx, cy, r * 1.6);
+  glowGrad.addColorStop(0, "rgba(255,158,199,0.25)");
+  glowGrad.addColorStop(0.5, "rgba(201,168,224,0.12)");
+  glowGrad.addColorStop(1, "rgba(255,158,199,0)");
+  ctx.save();
+  ctx.shadowColor = "rgba(255,158,199,0.3)";
+  ctx.shadowBlur = 20;
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 1.6, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+
+  // === Clip and draw image ===
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.88, 0, Math.PI * 2);
+  ctx.clip();
+  if (img && img.complete && img.naturalWidth > 0) {
+    const aspect = img.naturalWidth / img.naturalHeight;
+    let dw, dh;
+    const cover = r * 1.9;
+    if (aspect > 1) { dh = cover; dw = dh * aspect; }
+    else { dw = cover; dh = cover / aspect; }
+    ctx.drawImage(img, cx - dw/2, cy - dh/2, dw, dh);
+  } else {
+    ctx.fillStyle = "#FFD6E8";
+    ctx.fillRect(cx - r, cy - r, r * 2, r * 2);
+    ctx.fillStyle = "rgba(232,123,154,0.3)";
+    ctx.font = `${Math.round(r * 0.6)}px sans-serif`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText("♡", cx, cy);
+  }
+  ctx.restore();
+
+  // === Sweet rose ring (inner, just outside image) ===
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.9, 0, Math.PI * 2);
+  ctx.lineWidth = Math.max(2, r * 0.04);
+  const roseGrad = ctx.createLinearGradient(cx - r, cy - r, cx + r, cy + r);
+  roseGrad.addColorStop(0, "#FF9EC7");
+  roseGrad.addColorStop(0.5, "#E87B9A");
+  roseGrad.addColorStop(1, "#C9A8E0");
+  ctx.strokeStyle = roseGrad;
+  ctx.stroke();
+
+  // === White ring with dreamy blur ===
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 0.95, 0, Math.PI * 2);
+  ctx.lineWidth = Math.max(3, r * 0.05);
+  ctx.shadowColor = "rgba(255,255,255,0.5)";
+  ctx.shadowBlur = 6;
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.stroke();
+  ctx.restore();
+
+  // === Scalloped floral border (sweet pink petals) ===
+  drawScallopedBorder(ctx, cx, cy, r, "#FFFFFF", Math.max(3, r * 0.05), false);
+  // Dreamy lavender tint on scallops
+  drawScallopedBorder(ctx, cx, cy, r + 1, "#C9A8E0", Math.max(1.5, r * 0.02), false);
+
+  // === Dreamy outer thin ring (lavender) ===
+  ctx.save();
+  ctx.beginPath();
+  ctx.arc(cx, cy, r * 1.12, 0, Math.PI * 2);
+  ctx.lineWidth = Math.max(1.5, r * 0.02);
+  ctx.shadowColor = "rgba(201,168,224,0.3)";
+  ctx.shadowBlur = 8;
+  ctx.strokeStyle = "rgba(201,168,224,0.5)";
+  ctx.stroke();
+  ctx.restore();
+
+  // === Soft dreamy sparkles around frame ===
+  drawSparkle(ctx, cx + r * 0.7, cy - r * 0.8, r * 0.1, "#FF9EC7", 0.5);
+  drawSparkle(ctx, cx - r * 0.8, cy - r * 0.6, r * 0.07, "#FFF0F5", 0.4);
+  drawSparkle(ctx, cx + r * 0.9, cy + r * 0.5, r * 0.06, "#C9A8E0", 0.4);
+  drawSparkle(ctx, cx - r * 0.6, cy + r * 0.8, r * 0.06, "#FFB6C1", 0.35);
+
+  // === Highlight on image (top-left, soft) ===
+  ctx.save();
+  ctx.globalAlpha = 0.35;
+  ctx.fillStyle = "#FFFFFF";
+  ctx.beginPath();
+  ctx.ellipse(cx - r * 0.3, cy - r * 0.35, r * 0.15, r * 0.1, -0.5, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.restore();
+}
+
+// Scalloped (petal) border around circle
+function drawScallopedBorder(ctx, cx, cy, r, color, lineWidth, dashed) {
+  const petals = 16;
+  const petalSize = r * 0.13;
+  ctx.save();
+  ctx.strokeStyle = color;
+  ctx.lineWidth = lineWidth;
+  if (dashed) ctx.setLineDash([6, 4]);
+
+  for (let i = 0; i < petals; i++) {
+    const angle = (i / petals) * Math.PI * 2;
+    const px = cx + Math.cos(angle) * r;
+    const py = cy + Math.sin(angle) * r;
+    // Draw small petal arc
+    ctx.beginPath();
+    ctx.arc(px, py, petalSize, angle - Math.PI/2 - 0.3, angle - Math.PI/2 + 0.3);
+    ctx.stroke();
+  }
+  ctx.setLineDash([]);
+  ctx.restore();
+}
+
+// ===== Heartbeat Connection Line Between Avatars =====
+function drawHeartConnection(ctx, x1, x2, cy, height) {
+  const midX = (x1 + x2) / 2;
+  const gap = x2 - x1;
+  if (gap < 20) return;
+
+  // Wavy dotted line - left half
+  ctx.save();
+  ctx.strokeStyle = "rgba(232,123,154,0.45)";
+  ctx.lineWidth = 2;
+  ctx.setLineDash([3, 5]);
+  ctx.beginPath();
+  const waveAmp = 6;
+  const waveFreq = 0.08;
+  const startX = x1 + 8;
+  const endX = midX - 22;
+  for (let x = startX; x <= endX; x += 2) {
+    const y = cy + Math.sin((x - startX) * waveFreq) * waveAmp;
+    if (x === startX) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+
+  // Wavy dotted line - right half
+  ctx.beginPath();
+  const startX2 = midX + 22;
+  const endX2 = x2 - 8;
+  for (let x = startX2; x <= endX2; x += 2) {
+    const y = cy + Math.sin((x - startX2) * waveFreq) * waveAmp;
+    if (x === startX2) ctx.moveTo(x, y);
+    else ctx.lineTo(x, y);
+  }
+  ctx.stroke();
+  ctx.setLineDash([]);
+  ctx.restore();
+
+  // Central heart with glow
+  ctx.save();
+  // Glow
+  const heartSize = 22;
+  const glowGrad = ctx.createRadialGradient(midX, cy, 0, midX, cy, heartSize * 1.5);
+  glowGrad.addColorStop(0, "rgba(255,107,180,0.4)");
+  glowGrad.addColorStop(1, "rgba(255,107,180,0)");
+  ctx.fillStyle = glowGrad;
+  ctx.beginPath();
+  ctx.arc(midX, cy, heartSize * 1.5, 0, Math.PI * 2);
+  ctx.fill();
+
+  // Heart fill - gradient
+  traceHeart(ctx, midX, cy, heartSize);
+  const heartGrad = ctx.createLinearGradient(midX, cy - 15, midX, cy + 15);
+  heartGrad.addColorStop(0, "#FF8FBC");
+  heartGrad.addColorStop(0.5, COLORS.pinkBright);
+  heartGrad.addColorStop(1, COLORS.pinkDark);
+  ctx.fillStyle = heartGrad;
+  ctx.fill();
+
+  // Heart stroke
+  traceHeart(ctx, midX, cy, heartSize);
+  ctx.lineWidth = 1.5;
+  ctx.strokeStyle = "#FFFFFF";
+  ctx.stroke();
+
+  // Sparkles around heart
+  drawSparkle(ctx, midX - 14, cy - 8, 4, COLORS.goldLight, 0.6);
+  drawSparkle(ctx, midX + 14, cy + 6, 3, COLORS.goldLight, 0.5);
+  drawSparkle(ctx, midX + 6, cy - 14, 2.5, COLORS.white, 0.7);
+  ctx.restore();
+}
+
+// ===== Decorative Background Hearts =====
+function drawDecorativeHearts(ctx, yStart, yEnd, count) {
+  const seed = 12345;
+  for (let i = 0; i < count; i++) {
+    const sx = ((seed * (i+1) * 9301 + 49297) % 233280) / 233280;
+    const sy = ((seed * (i+3) * 9301 + 49297) % 233280) / 233280;
+    const x = 40 + sx * (W - 80);
+    const y = yStart + sy * (yEnd - yStart);
+    const size = 10 + ((seed * (i+2)) % 18);
+    const alpha = 0.06 + ((seed * (i+1)) % 10) / 100;
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.fillStyle = "#FFB6C1";
+    traceHeart(ctx, x, y, size);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+
+function drawPillText(ctx, text, cx, cy, font, fill, bg, padX=18, padY=8) {
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  const metrics = ctx.measureText(text);
+  const tw = metrics.width;
+  const w = tw + padX * 2;
+  const h = parseInt(font.match(/(\d+)px/)[1]) + padY * 2;
+  roundRect(ctx, cx - w/2, cy - h/2, w, h, h/2);
+  ctx.fillStyle = bg;
+  ctx.fill();
+  ctx.fillStyle = fill;
+  ctx.fillText(text, cx, cy);
+  return w;
+}
+
+// ===== Dreamy Ethereal Text (soft glow blur, no solid pill) =====
+function drawDreamyText(ctx, text, cx, cy, font, gradColors, fixedWidth) {
+  ctx.font = font;
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+
+  // Color helper: handles both hex (#FF9EC7) and rgba strings
+  const toRgba = (color, alpha) => {
+    if (color.startsWith("#")) {
+      const r = parseInt(color.slice(1,3),16);
+      const g = parseInt(color.slice(3,5),16);
+      const b = parseInt(color.slice(5,7),16);
+      return `rgba(${r},${g},${b},${alpha})`;
+    }
+    // Already rgba/rgb - extract and reapply alpha
+    const m = color.match(/\d+/g);
+    if (m && m.length >= 3) {
+      return `rgba(${m[0]},${m[1]},${m[2]},${alpha})`;
+    }
+    return color;
+  };
+
+  // 1. Soft blurred glow halo behind text (multi-layer)
+  ctx.save();
+  const glowRadius = (fixedWidth || 120) * 0.6;
+  const c0 = toRgba(gradColors[0], 0.3);
+  const c1 = toRgba(gradColors[1], 0.15);
+  const haloGrad = ctx.createRadialGradient(cx, cy, 0, cx, cy, glowRadius);
+  haloGrad.addColorStop(0, c0);
+  haloGrad.addColorStop(0.5, c1);
+  haloGrad.addColorStop(1, "rgba(255,255,255,0)");
+  ctx.fillStyle = haloGrad;
+  ctx.shadowColor = c0;
+  ctx.shadowBlur = 25;
+  ctx.fillText(text, cx, cy);
+  ctx.restore();
+
+  // 2. Soft dreamy underline/swirl (decorative, blurred)
+  ctx.save();
+  ctx.strokeStyle = toRgba(gradColors[0], 0.2);
+  ctx.lineWidth = 1.5;
+  ctx.shadowColor = toRgba(gradColors[0], 0.3);
+  ctx.shadowBlur = 8;
+  const textW = ctx.measureText(text).width;
+  const lineY = cy + parseInt(font.match(/(\d+)px/)[1]) * 0.45;
+  ctx.beginPath();
+  ctx.moveTo(cx - textW/2 - 8, lineY);
+  ctx.bezierCurveTo(cx - textW/4, lineY - 3, cx + textW/4, lineY + 3, cx + textW/2 + 8, lineY);
+  ctx.stroke();
+  ctx.restore();
+
+  // 3. Text with white glow stroke
+  ctx.save();
+  ctx.shadowColor = "rgba(255,255,255,0.8)";
+  ctx.shadowBlur = 8;
+  ctx.lineWidth = 3;
+  ctx.strokeStyle = "rgba(255,255,255,0.5)";
+  ctx.lineJoin = "round";
+  ctx.strokeText(text, cx, cy);
+  ctx.restore();
+
+  // 4. Gradient fill on text
+  ctx.save();
+  const textGrad = ctx.createLinearGradient(cx - 50, cy - 20, cx + 50, cy + 20);
+  textGrad.addColorStop(0, gradColors[0].startsWith("rgba") ? toRgba(gradColors[0], 0.8) : gradColors[0]);
+  textGrad.addColorStop(0.5, gradColors[1].startsWith("rgba") ? toRgba(gradColors[1], 0.7) : gradColors[1]);
+  textGrad.addColorStop(1, (gradColors[2] || gradColors[1]).startsWith("rgba") ? toRgba(gradColors[2] || gradColors[1], 0.8) : (gradColors[2] || gradColors[1]));
+  ctx.fillStyle = textGrad;
+  ctx.fillText(text, cx, cy);
+  ctx.restore();
+
+  // 5. Soft sparkles (fewer, subtler)
+  const sparkleColor = gradColors[0].startsWith("#") ? gradColors[0] : "#FFF0F5";
+  drawSparkle(ctx, cx - (fixedWidth || 60) * 0.4, cy - 8, 3, sparkleColor, 0.4);
+  drawSparkle(ctx, cx + (fixedWidth || 60) * 0.4, cy + 6, 2.5, sparkleColor, 0.35);
+
+  return fixedWidth || ctx.measureText(text).width;
+}
+
+function formatPkg(pkg) {
+  if (!pkg) return "";
+  const t = pkg.trim();
+  if (t.startsWith("♥") || t.startsWith("❤") || t.startsWith("♡")) return t;
+  // Check if it matches a preset by amount or name
+  const preset = PKG_PRESETS.find(p => p.amount === t || p.name === t);
+  if (preset) {
+    if (state.pkgDisplayMode === "name") return "♥" + preset.name;
+    if (state.pkgDisplayMode === "amount") return "♥" + preset.amount;
+    // "both" mode
+    return `♥${preset.name} ${preset.amount}`;
+  }
+  return "♥" + t;
+}
+
+// ===== Render Sections =====
+function drawBackground(ctx) {
+  const grad = ctx.createLinearGradient(0, 0, 0, H);
+  grad.addColorStop(0, COLORS.bgTop);
+  grad.addColorStop(0.4, COLORS.bgMid);
+  grad.addColorStop(1, COLORS.bgBot);
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, 0, W, H);
+  drawDecorativeHearts(ctx, 580, H, 24);
+}
+
+function drawBanner(ctx) {
+  if (state.banner) {
+    const img = getImg(state.banner);
+    if (img && img.complete && img.naturalWidth > 0) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(0, 0, W, BANNER_H);
+      ctx.clip();
+      const aspect = img.naturalWidth / img.naturalHeight;
+      let dw, dh;
+      if (aspect > W / BANNER_H) { dh = BANNER_H; dw = dh * aspect; }
+      else { dw = W; dh = W / aspect; }
+      ctx.drawImage(img, (W - dw)/2, (BANNER_H - dh)/2, dw, dh);
+      ctx.restore();
+    }
+  }
+  const overlay = ctx.createLinearGradient(0, 0, W, BANNER_H);
+  overlay.addColorStop(0, "rgba(255,182,193,0.35)");
+  overlay.addColorStop(0.5, "rgba(221,160,221,0.25)");
+  overlay.addColorStop(1, "rgba(201,168,224,0.35)");
+  ctx.fillStyle = overlay;
+  ctx.fillRect(0, 0, W, BANNER_H);
+
+  const fade = ctx.createLinearGradient(0, BANNER_H - 80, 0, BANNER_H);
+  fade.addColorStop(0, "rgba(255,240,245,0)");
+  fade.addColorStop(1, COLORS.bgTop);
+  ctx.fillStyle = fade;
+  ctx.fillRect(0, BANNER_H - 80, W, 80);
+
+  const positions = [
+    {x:60,y:50,s:16}, {x:200,y:90,s:22}, {x:380,y:40,s:14},
+    {x:500,y:80,s:20}, {x:680,y:55,s:18}, {x:850,y:90,s:15},
+    {x:120,y:440,s:14}, {x:750,y:450,s:16}, {x:420,y:460,s:12}
+  ];
+  positions.forEach(p => {
+    ctx.save();
+    ctx.globalAlpha = 0.15;
+    ctx.fillStyle = "#fff";
+    traceHeart(ctx, p.x, p.y, p.s);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Decorative English text - LARGER
+  if (state.deco) {
+    ctx.save();
+    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.font = "32px 'Dancing Script', cursive";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillText(state.deco, W/2, 180);
+    ctx.restore();
+  }
+
+  // Main title - MUCH LARGER, artistic font
+  if (state.title) {
+    ctx.save();
+    ctx.font = "120px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(0,0,0,0.15)";
+    ctx.fillText(state.title, W/2 + 4, 290 + 4);
+    ctx.restore();
+
+    drawStrokedText(ctx, state.title, W/2, 290,
+      "120px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif",
+      "#FFFFFF", COLORS.pinkDark, 14);
+    drawStrokedText(ctx, state.title, W/2, 290,
+      "120px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif",
+      "rgba(255,255,255,0)", COLORS.pinkMain, 6);
+  }
+
+  // Subtitle - LARGER, elegant calligraphy
+  if (state.subtitle) {
+    ctx.save();
+    ctx.font = "50px 'Great Vibes', cursive";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.fillText(state.subtitle, W/2, 370);
+    ctx.restore();
+  }
+
+  // Decorative line under subtitle with heart
+  ctx.save();
+  ctx.strokeStyle = "rgba(255,255,255,0.3)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W/2 - 120, 405);
+  ctx.lineTo(W/2 - 20, 405);
+  ctx.moveTo(W/2 + 20, 405);
+  ctx.lineTo(W/2 + 120, 405);
+  ctx.stroke();
+  traceHeart(ctx, W/2, 405, 12);
+  ctx.fillStyle = "rgba(255,255,255,0.5)";
+  ctx.fill();
+  ctx.restore();
+}
+
+function drawCategoryTabs(ctx) {
+  const y = BANNER_H + TABS_H / 2;
+  // Merge left + right tabs into one line, only show if content exists
+  const parts = [];
+  if (state.catL) parts.push(state.catL);
+  if (state.catR) parts.push(state.catR);
+  if (parts.length === 0) return;
+  const combined = parts.join("  ♥  ");
+  const dreamyColors = ["#FF9EC7", "#E87B9A", "#C9A8E0"];
+  drawDreamyText(ctx, combined, W / 2, y,
+    "40px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+    dreamyColors, 600);
+}
+
+function drawEntries(ctx) {
+  const slots = Math.max(1, state.slots);
+  const entryH = ENTRIES_H / slots;
+  const avatarRadius = Math.min(56, entryH * 0.4);
+
+  for (let i = 0; i < slots; i++) {
+    const entry = state.entries[i];
+    const yCenter = BANNER_H + TABS_H + (i + 0.5) * entryH;
+    const hasData = entry && (entry.nickL || entry.nickR || entry.avatarL || entry.avatarR);
+
+    if (i % 2 === 0) {
+      ctx.save();
+      ctx.fillStyle = "rgba(255,240,245,0.4)";
+      ctx.fillRect(0, BANNER_H + TABS_H + i * entryH, W, entryH);
+      ctx.restore();
+    }
+
+    ctx.save();
+    ctx.strokeStyle = "rgba(232,123,154,0.1)";
+    ctx.lineWidth = 1;
+    ctx.beginPath();
+    ctx.moveTo(30, BANNER_H + TABS_H + i * entryH);
+    ctx.lineTo(W - 30, BANNER_H + TABS_H + i * entryH);
+    ctx.stroke();
+    ctx.restore();
+
+    if (!hasData) {
+      drawEmptyEntry(ctx, i + 1, yCenter, avatarRadius, entryH);
+    } else {
+      drawEntry(ctx, entry, yCenter, avatarRadius, entryH);
+    }
+  }
+}
+
+function drawEntry(ctx, entry, yCenter, avatarR, entryH) {
+  // Positions - nicknames closer to avatars
+  const numX = 85;
+  const nickLX = 330;    // right-aligned, closer to left avatar
+  const avatarLX = 400;
+  const avatarRX = 560;
+  const nickRX = 630;    // left-aligned, closer to right avatar
+  const pkgX = 855;
+
+  // Dreamy color palettes - sweet & ethereal
+  const dreamyColors = ["#FF9EC7", "#E87B9A", "#C9A8E0"]; // pink → rose → lavender
+
+  // Number - dreamy text, bold, slightly smaller
+  const numStr = entry.num ? `No.${entry.num}` : `No.`;
+  drawDreamyText(ctx, numStr, numX, yCenter,
+    "bold 38px 'Parisienne', 'Great Vibes', cursive",
+    dreamyColors, 130);
+
+  // Left nickname - artistic font, visually unified size
+  if (entry.nickL) {
+    drawDreamyText(ctx, entry.nickL, nickLX - 30, yCenter,
+      "38px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+      dreamyColors, 120);
+  }
+
+  // Left ornate avatar
+  const imgL = entry.avatarL ? getImg(entry.avatarL) : null;
+  drawOrnateAvatar(ctx, avatarLX, yCenter, avatarR, imgL, false);
+
+  // === Heartbeat connection between avatars ===
+  drawHeartConnection(ctx, avatarLX + avatarR + 6, avatarRX - avatarR - 6, yCenter, entryH);
+
+  // Right ornate avatar
+  const imgR = entry.avatarR ? getImg(entry.avatarR) : null;
+  drawOrnateAvatar(ctx, avatarRX, yCenter, avatarR, imgR, false);
+
+  // Right nickname - artistic font, visually unified size
+  if (entry.nickR) {
+    drawDreamyText(ctx, entry.nickR, nickRX + 30, yCenter,
+      "38px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+      dreamyColors, 120);
+  }
+
+  // Package value - dreamy text, slightly smaller
+  const pkgText = formatPkg(entry.pkg);
+  if (pkgText) {
+    drawDreamyText(ctx, pkgText, pkgX, yCenter,
+      "36px 'Dancing Script', 'Noto Sans SC', sans-serif",
+      dreamyColors, 130);
+  }
+}
+
+function drawEmptyEntry(ctx, slotNum, yCenter, avatarR, entryH) {
+  const avatarLX = 400;
+  const avatarRX = 560;
+  const nickLX = 330;
+  const nickRX = 630;
+  const pkgX = 855;
+  const numX = 85;
+
+  // Dreamy colors for empty state (softer/faded)
+  const fadedColors = ["rgba(255,158,199,0.5)", "rgba(232,123,154,0.4)", "rgba(201,168,224,0.35)"];
+
+  // Empty number - dreamy text, bold
+  const numStr = `No.${String(slotNum).padStart(3, "0")}`;
+  drawDreamyText(ctx, numStr, numX, yCenter,
+    "bold 38px 'Parisienne', 'Great Vibes', cursive",
+    fadedColors, 130);
+
+  // "虚位以待" nicknames - dreamy, faded
+  drawDreamyText(ctx, "虚位以待", nickLX - 30, yCenter,
+    "38px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+    fadedColors, 120);
+  drawDreamyText(ctx, "虚位以待", nickRX + 30, yCenter,
+    "38px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+    fadedColors, 120);
+
+  // Empty ornate avatars
+  drawOrnateAvatar(ctx, avatarLX, yCenter, avatarR, null, true);
+  drawHeartConnection(ctx, avatarLX + avatarR + 6, avatarRX - avatarR - 6, yCenter, entryH);
+  drawOrnateAvatar(ctx, avatarRX, yCenter, avatarR, null, true);
+
+  // Empty package - dreamy text
+  drawDreamyText(ctx, "♥ ---", pkgX, yCenter,
+    "36px 'Dancing Script', 'Noto Sans SC', sans-serif",
+    fadedColors, 130);
+}
+
+function drawFooter(ctx) {
+  const yStart = BANNER_H + TABS_H + ENTRIES_H;
+  const yEnd = H;
+  const cy = yStart + (yEnd - yStart) / 2;
+
+  const grad = ctx.createLinearGradient(0, yStart, 0, yEnd);
+  grad.addColorStop(0, "rgba(255,182,193,0.15)");
+  grad.addColorStop(0.5, "rgba(201,168,224,0.1)");
+  grad.addColorStop(1, "rgba(232,123,154,0.15)");
+  ctx.fillStyle = grad;
+  ctx.fillRect(0, yStart, W, yEnd - yStart);
+
+  const heartY = yStart + 60;
+  const hearts = [
+    {x: W/2 - 200, s: 40, alpha: 0.15},
+    {x: W/2 - 100, s: 30, alpha: 0.1},
+    {x: W/2, s: 50, alpha: 0.18},
+    {x: W/2 + 100, s: 30, alpha: 0.1},
+    {x: W/2 + 200, s: 40, alpha: 0.15},
+  ];
+  hearts.forEach(h => {
+    ctx.save();
+    ctx.globalAlpha = h.alpha;
+    ctx.fillStyle = COLORS.pinkMain;
+    traceHeart(ctx, h.x, heartY, h.s);
+    ctx.fill();
+    ctx.restore();
+  });
+
+  // Footer text - LARGER, artistic
+  if (state.footer) {
+    ctx.save();
+    ctx.font = "34px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif";
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    ctx.fillStyle = "rgba(200,100,130,0.55)";
+    ctx.fillText(state.footer, W/2, cy + 20);
+    ctx.restore();
+  }
+
+  ctx.save();
+  ctx.strokeStyle = "rgba(232,123,154,0.2)";
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(W/2 - 100, yEnd - 30);
+  ctx.lineTo(W/2 - 15, yEnd - 30);
+  ctx.moveTo(W/2 + 15, yEnd - 30);
+  ctx.lineTo(W/2 + 100, yEnd - 30);
+  ctx.stroke();
+  traceHeart(ctx, W/2, yEnd - 30, 10);
+  ctx.fillStyle = "rgba(232,123,154,0.3)";
+  ctx.fill();
+  ctx.restore();
+}
+
+// ===== Main Render =====
+let _renderTimer = null;
+async function renderPoster() {
+  await preloadImages();
+  await ensureFonts();
+  const canvas = document.getElementById("posterCanvas");
+  const ctx = canvas.getContext("2d");
+  canvas.width = W;
+  canvas.height = H;
+  ctx.clearRect(0, 0, W, H);
+  drawBackground(ctx);
+  drawBanner(ctx);
+  drawCategoryTabs(ctx);
+  drawEntries(ctx);
+  drawFooter(ctx);
+}
+
+function debouncedRender() {
+  clearTimeout(_renderTimer);
+  _renderTimer = setTimeout(renderPoster, 150);
+}
+
+// ===== Export =====
+async function exportImage() {
+  const btn = document.getElementById("exportBtn");
+  btn.disabled = true;
+  document.getElementById("loadingOverlay").classList.add("show");
+  document.getElementById("loadingText").textContent = "正在生成海报...";
+  try {
+    await renderPoster();
+    const canvas = document.getElementById("posterCanvas");
+    document.getElementById("loadingText").textContent = "正在导出图片...";
+    const dataUrl = canvas.toDataURL("image/png");
+    canvas.toBlob(function(blob) {
+      document.getElementById("saveImage").src = dataUrl;
+      document.getElementById("saveOverlay").classList.add("show");
+      const dlBtn = document.getElementById("btnSaveDownload");
+      dlBtn.onclick = function() {
+        const link = document.createElement("a");
+        link.download = "couple-ranking-" + Date.now() + ".png";
+        link.href = URL.createObjectURL(blob);
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+      };
+      if (navigator.share && navigator.canShare) {
+        dlBtn.textContent = "保存/分享图片";
+        dlBtn.onclick = async function() {
+          try {
+            const file = new File([blob], "couple-ranking.png", {type: "image/png"});
+            if (navigator.canShare({ files: [file] })) {
+              await navigator.share({ files: [file], title: "甜蜜情侣榜", text: "看看我们的情侣榜！" });
+              return;
+            }
+          } catch(e) {}
+          const link = document.createElement("a");
+          link.download = "couple-ranking-" + Date.now() + ".png";
+          link.href = URL.createObjectURL(blob);
+          link.click();
+          setTimeout(() => URL.revokeObjectURL(link.href), 2000);
+        };
+      }
+      document.getElementById("loadingOverlay").classList.remove("show");
+      btn.disabled = false;
+    }, "image/png");
+  } catch(e) {
+    console.error("Export error:", e);
+    alert("导出失败: " + e.message);
+    document.getElementById("loadingOverlay").classList.remove("show");
+    btn.disabled = false;
+  }
+}
+
+function closeSaveOverlay() {
+  document.getElementById("saveOverlay").classList.remove("show");
+}
+
+function switchView(view) {
+  const panel = document.getElementById("controlPanel");
+  const preview = document.getElementById("previewView");
+  const tabs = document.querySelectorAll(".mobile-tab");
+  if (view === "panel") {
+    panel.classList.add("active");
+    preview.classList.remove("active");
+    tabs[0].classList.add("active");
+    tabs[1].classList.remove("active");
+  } else {
+    panel.classList.remove("active");
+    preview.classList.add("active");
+    tabs[0].classList.remove("active");
+    tabs[1].classList.add("active");
+    renderPoster();
+  }
+  window.scrollTo(0, 0);
+}
+
+// ===== Entry Management with Reordering =====
+function renderEntries() {
+  const container = document.getElementById("entriesContainer");
+  container.innerHTML = "";
+
+  // Insert divider at top (before first entry)
+  container.appendChild(createInsertDivider(0));
+
+  state.entries.forEach((entry, i) => {
+    const card = document.createElement("div");
+    card.className = "entry-card";
+    card.innerHTML = `
+      <span class="entry-num">情侣 ${i + 1}</span>
+      <div class="entry-actions">
+        <button class="btn-move" onclick="moveEntry(${i}, -1)" ${i === 0 ? 'disabled' : ''} title="上移">↑</button>
+        <button class="btn-move" onclick="moveEntry(${i}, 1)" ${i === state.entries.length - 1 ? 'disabled' : ''} title="下移">↓</button>
+        <button class="btn-remove" onclick="removeEntry(${i})">删除</button>
+      </div>
+      <div class="entry-body">
+        <div class="row">
+          <div class="input-group" style="margin:0">
+            <label>编号</label>
+            <input type="text" class="input-field" value="${entry.num || ""}" placeholder="001"
+              oninput="state.entries[${i}].num = this.value; debouncedRender(); debouncedSave()">
+          </div>
+          <div class="input-group" style="margin:0">
+            <label>官宣套餐</label>
+            <input type="text" class="input-field" value="${entry.pkg || ""}" placeholder="299 / 甜蜜官宣"
+              oninput="state.entries[${i}].pkg = this.value; debouncedRender(); debouncedSave()">
+          </div>
+        </div>
+        <div class="pkg-quick">
+          ${PKG_PRESETS.map(p => `<span class="pkg-chip" onclick="setPkg(${i}, '${p.amount}')">${p.name} ${p.amount}</span>`).join("")}
+        </div>
+        <div class="pair">
+          <div class="side">
+            <div class="side-label">左侧（昵称 + 头像）</div>
+            <input type="text" class="input-field" value="${entry.nickL || ""}" placeholder="昵称"
+              oninput="state.entries[${i}].nickL = this.value; debouncedRender(); debouncedSave()">
+            <div class="avatar-upload">
+              <div class="avatar-preview" id="avatarL_${i}">${entry.avatarL ? "" : "👤"}</div>
+              <label class="file-btn">选择头像<input type="file" accept="image/*"
+                onchange="handleAvatar(${i}, 'L', this)"></label>
+            </div>
+          </div>
+          <div class="side">
+            <div class="side-label">右侧（昵称 + 头像）</div>
+            <input type="text" class="input-field" value="${entry.nickR || ""}" placeholder="昵称"
+              oninput="state.entries[${i}].nickR = this.value; debouncedRender(); debouncedSave()">
+            <div class="avatar-upload">
+              <div class="avatar-preview" id="avatarR_${i}">${entry.avatarR ? "" : "👤"}</div>
+              <label class="file-btn">选择头像<input type="file" accept="image/*"
+                onchange="handleAvatar(${i}, 'R', this)"></label>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+    container.appendChild(card);
+    if (entry.avatarL) updateAvatarPreview("avatarL_" + i, entry.avatarL);
+    if (entry.avatarR) updateAvatarPreview("avatarR_" + i, entry.avatarR);
+
+    // Insert divider after this entry (before next one)
+    container.appendChild(createInsertDivider(i + 1));
+  });
+}
+
+// Create insert divider element
+function createInsertDivider(insertIndex) {
+  const div = document.createElement("div");
+  div.className = "insert-divider";
+  div.onclick = () => insertEntry(insertIndex);
+  div.innerHTML = `
+    <div class="insert-line"></div>
+    <div class="insert-btn" title="在此处插入一行">+</div>
+    <span class="insert-label">插入行</span>
+    <div class="insert-line"></div>
+  `;
+  return div;
+}
+
+// Insert a new empty entry at the specified index
+function insertEntry(idx) {
+  const num = String(idx + 1).padStart(3, "0");
+  state.entries.splice(idx, 0, { num, nickL:"", nickR:"", avatarL:null, avatarR:null, pkg:"" });
+  // Renumber existing entries' default nums if they match old sequence
+  renderEntries();
+  debouncedRender();
+  debouncedSave();
+}
+
+function moveEntry(idx, dir) {
+  const newIdx = idx + dir;
+  if (newIdx < 0 || newIdx >= state.entries.length) return;
+  // Swap entries
+  const tmp = state.entries[idx];
+  state.entries[idx] = state.entries[newIdx];
+  state.entries[newIdx] = tmp;
+  renderEntries();
+  debouncedRender();
+  debouncedSave();
+}
+
+function updateAvatarPreview(id, dataUrl) {
+  const el = document.getElementById(id);
+  if (!el) return;
+  el.innerHTML = `<img src="${dataUrl}" alt="">`;
+}
+
+function setPkg(idx, val) {
+  if (!state.entries[idx]) return;
+  state.entries[idx].pkg = val;
+  renderEntries();
+  debouncedRender();
+  debouncedSave();
+}
+
+function setPkgMode(mode) {
+  state.pkgDisplayMode = mode;
+  document.getElementById("pkgModeName").classList.toggle("active", mode === "name");
+  document.getElementById("pkgModeAmount").classList.toggle("active", mode === "amount");
+  document.getElementById("pkgModeBoth").classList.toggle("active", mode === "both");
+  debouncedRender();
+  debouncedSave();
+}
+
+function handleAvatar(idx, side, input) {
+  const file = input.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
+    if (side === "L") state.entries[idx].avatarL = dataUrl;
+    else state.entries[idx].avatarR = dataUrl;
+    updateAvatarPreview(`avatar${side}_${idx}`, dataUrl);
+    debouncedRender();
+    debouncedSave();
+  };
+  reader.readAsDataURL(file);
+}
+
+function addEntry() {
+  const num = String(state.entries.length + 1).padStart(3, "0");
+  state.entries.push({ num, nickL:"", nickR:"", avatarL:null, avatarR:null, pkg:"" });
+  renderEntries();
+  debouncedRender();
+  debouncedSave();
+}
+
+function removeEntry(idx) {
+  state.entries.splice(idx, 1);
+  renderEntries();
+  debouncedRender();
+  debouncedSave();
+}
+
+function resetAll() {
+  if (!confirm("确定重置全部数据？这将清除所有已保存的信息。")) return;
+  state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  state.pkgDisplayMode = "name";
+  setPkgMode("name");
+  localStorage.removeItem(STORAGE_KEY);
+  localStorage.removeItem("zhaomiqinglv_data");
+  document.getElementById("cfgTitle").value = state.title;
+  document.getElementById("cfgSubtitle").value = state.subtitle;
+  document.getElementById("cfgDeco").value = state.deco;
+  document.getElementById("cfgCatL").value = state.catL;
+  document.getElementById("cfgCatR").value = state.catR;
+  document.getElementById("cfgSlots").value = state.slots;
+  document.getElementById("cfgFooter").value = state.footer;
+  document.getElementById("cfgBanner").value = "";
+  document.getElementById("bannerName").textContent = "未选择";
+  renderEntries();
+  debouncedRender();
+}
+
+// ===== Config Bindings =====
+function bindConfig() {
+  const bindings = {
+    cfgTitle: "title", cfgSubtitle: "subtitle", cfgDeco: "deco",
+    cfgCatL: "catL", cfgCatR: "catR", cfgSlots: "slots", cfgFooter: "footer",
+  };
+  Object.entries(bindings).forEach(([id, key]) => {
+    const el = document.getElementById(id);
+    el.value = state[key] !== undefined ? state[key] : "";
+    el.addEventListener("input", () => {
+      state[key] = key === "slots" ? (parseInt(el.value) || 10) : el.value;
+      debouncedRender();
+      debouncedSave();
+    });
+  });
+  document.getElementById("cfgBanner").addEventListener("change", function() {
+    const file = this.files[0];
+    if (!file) return;
+    document.getElementById("bannerName").textContent = file.name;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      state.banner = e.target.result;
+      debouncedRender();
+      debouncedSave();
+    };
+    reader.readAsDataURL(file);
+  });
+}
+
+// ===== Init =====
+async function init() {
+  loadData();
+  if (!state.pkgDisplayMode) state.pkgDisplayMode = "name";
+  setPkgMode(state.pkgDisplayMode);
+  bindConfig();
+  renderEntries();
+  await renderPoster();
+}
+
+init();
+
+let resizeTimer;
+window.addEventListener("resize", () => {
+  clearTimeout(resizeTimer);
+  resizeTimer = setTimeout(renderPoster, 200);
+});
+</script>
+</body>
+</html>
