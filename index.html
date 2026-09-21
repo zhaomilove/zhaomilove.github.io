@@ -304,8 +304,8 @@ const PKG_PRESETS = [
 ];
 
 const COLORS = {
-  pinkMain:"#E87B9A", pinkDark:"#D45A8A", pinkLight:"#FFB6C1",
-  pinkBright:"#FF69B4", purple:"#C9A8E0", purpleDark:"#9B7BB8",
+  pinkMain:"#C7325E", pinkDark:"#A51E44", pinkLight:"#FFB6C1",
+  pinkBright:"#E6358A", purple:"#9B59B6", purpleDark:"#7E3C9E",
   white:"#FFFFFF", cream:"#FFF5F8",
   bgTop:"#FFF0F5", bgMid:"#F5E0F0", bgBot:"#E8D5F0",
   gold:"#D4AF37", goldLight:"#FFD700", goldDeep:"#B8860B",
@@ -554,7 +554,7 @@ async function ensureFonts() {
       document.fonts.load("120px 'ZCOOL KuaiLe'"),
       document.fonts.load("50px 'Great Vibes'"),
       document.fonts.load("42px 'Parisienne'"),
-      document.fonts.load("38px 'Ma Shan Zheng'"),
+      document.fonts.load("38px 'ZCOOL KuaiLe'"),
       document.fonts.load("32px 'Dancing Script'"),
       document.fonts.load("30px 'Long Cang'"),
       document.fonts.load("28px 'Noto Sans SC'"),
@@ -971,12 +971,12 @@ function drawDreamyText(ctx, text, cx, cy, font, gradColors, fixedWidth) {
   ctx.stroke();
   ctx.restore();
 
-  // 3. Text with white glow stroke
+  // 3. Text with subtle glow stroke
   ctx.save();
-  ctx.shadowColor = "rgba(255,255,255,0.8)";
-  ctx.shadowBlur = 8;
-  ctx.lineWidth = 3;
-  ctx.strokeStyle = "rgba(255,255,255,0.5)";
+  ctx.shadowColor = "rgba(255,255,255,0.4)";
+  ctx.shadowBlur = 6;
+  ctx.lineWidth = 2;
+  ctx.strokeStyle = "rgba(255,255,255,0.3)";
   ctx.lineJoin = "round";
   ctx.strokeText(text, cx, cy);
   ctx.restore();
@@ -984,9 +984,9 @@ function drawDreamyText(ctx, text, cx, cy, font, gradColors, fixedWidth) {
   // 4. Gradient fill on text
   ctx.save();
   const textGrad = ctx.createLinearGradient(cx - 50, cy - 20, cx + 50, cy + 20);
-  textGrad.addColorStop(0, gradColors[0].startsWith("rgba") ? toRgba(gradColors[0], 0.8) : gradColors[0]);
-  textGrad.addColorStop(0.5, gradColors[1].startsWith("rgba") ? toRgba(gradColors[1], 0.7) : gradColors[1]);
-  textGrad.addColorStop(1, (gradColors[2] || gradColors[1]).startsWith("rgba") ? toRgba(gradColors[2] || gradColors[1], 0.8) : (gradColors[2] || gradColors[1]));
+  textGrad.addColorStop(0, gradColors[0].startsWith("rgba") ? toRgba(gradColors[0], 0.95) : gradColors[0]);
+  textGrad.addColorStop(0.5, gradColors[1].startsWith("rgba") ? toRgba(gradColors[1], 0.9) : gradColors[1]);
+  textGrad.addColorStop(1, (gradColors[2] || gradColors[1]).startsWith("rgba") ? toRgba(gradColors[2] || gradColors[1], 0.95) : (gradColors[2] || gradColors[1]));
   ctx.fillStyle = textGrad;
   ctx.fillText(text, cx, cy);
   ctx.restore();
@@ -1071,7 +1071,7 @@ function drawBanner(ctx) {
   // Decorative English text - LARGER
   if (state.deco) {
     ctx.save();
-    ctx.fillStyle = "rgba(255,255,255,0.65)";
+    ctx.fillStyle = "rgba(200,80,120,0.75)";
     ctx.font = "32px 'Dancing Script', cursive";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
@@ -1103,7 +1103,7 @@ function drawBanner(ctx) {
     ctx.font = "50px 'Great Vibes', cursive";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "rgba(255,255,255,0.88)";
+    ctx.fillStyle = "rgba(200,60,100,0.9)";
     ctx.fillText(state.subtitle, W/2, 370);
     ctx.restore();
   }
@@ -1132,7 +1132,7 @@ function drawCategoryTabs(ctx) {
   if (state.catR) parts.push(state.catR);
   if (parts.length === 0) return;
   const combined = parts.join("  ♥  ");
-  const dreamyColors = ["#FF9EC7", "#E87B9A", "#C9A8E0"];
+  const dreamyColors = ["#E6358A", "#D12E6E", "#A855C4"];
   drawDreamyText(ctx, combined, W / 2, y,
     "40px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
     dreamyColors, 600);
@@ -1181,8 +1181,8 @@ function drawEntry(ctx, entry, yCenter, avatarR, entryH) {
   const nickRX = 630;    // left-aligned, closer to right avatar
   const pkgX = 855;
 
-  // Dreamy color palettes - sweet & ethereal
-  const dreamyColors = ["#FF9EC7", "#E87B9A", "#C9A8E0"]; // pink → rose → lavender
+  // Deepened color palettes - sweet & vivid
+  const dreamyColors = ["#E6358A", "#D12E6E", "#A855C4"]; // deep pink → deep rose → deep lavender
 
   // Number - dreamy text, bold, slightly smaller
   const numStr = entry.num ? `No.${entry.num}` : `No.`;
@@ -1190,10 +1190,10 @@ function drawEntry(ctx, entry, yCenter, avatarR, entryH) {
     "bold 32px 'Parisienne', 'Great Vibes', cursive",
     dreamyColors, 120);
 
-  // Left nickname - artistic font, visually unified size
+  // Left nickname - simple readable artistic font
   if (entry.nickL) {
     drawDreamyText(ctx, entry.nickL, nickLX - 30, yCenter,
-      "38px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+      "38px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif",
       dreamyColors, 120);
   }
 
@@ -1208,10 +1208,10 @@ function drawEntry(ctx, entry, yCenter, avatarR, entryH) {
   const imgR = entry.avatarR ? getImg(entry.avatarR) : null;
   drawOrnateAvatar(ctx, avatarRX, yCenter, avatarR, imgR, false);
 
-  // Right nickname - artistic font, visually unified size
+  // Right nickname - simple readable artistic font
   if (entry.nickR) {
     drawDreamyText(ctx, entry.nickR, nickRX + 30, yCenter,
-      "38px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+      "38px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif",
       dreamyColors, 120);
   }
 
@@ -1232,17 +1232,17 @@ function drawEmptyEntry(ctx, slotNum, yCenter, avatarR, entryH) {
   const pkgX = 855;
   const numX = 85;
 
-  // Dreamy colors for empty state (softer/faded)
-  const fadedColors = ["rgba(255,158,199,0.5)", "rgba(232,123,154,0.4)", "rgba(201,168,224,0.35)"];
+  // Deepened colors for empty state (softer/faded but deeper)
+  const fadedColors = ["rgba(230,53,138,0.55)", "rgba(209,46,110,0.45)", "rgba(168,85,196,0.4)"];
 
   // 空余席位不显示编码
 
-  // "虚位以待" nicknames - dreamy, faded
+  // "虚位以待" nicknames - simple readable font, deepened faded
   drawDreamyText(ctx, "虚位以待", nickLX - 30, yCenter,
-    "38px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+    "38px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif",
     fadedColors, 120);
   drawDreamyText(ctx, "虚位以待", nickRX + 30, yCenter,
-    "38px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+    "38px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif",
     fadedColors, 120);
 
   // Empty ornate avatars
@@ -1291,7 +1291,7 @@ function drawFooter(ctx) {
     ctx.font = "34px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillStyle = "rgba(200,100,130,0.55)";
+    ctx.fillStyle = "rgba(180,50,80,0.8)";
     ctx.fillText(state.footer, W/2, cy + 20);
     ctx.restore();
   }
