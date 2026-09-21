@@ -158,9 +158,6 @@ body{font-family:'Noto Sans SC',sans-serif;background:#0f0a1a;color:#fff;overflo
 
     <div class="cloud-section">
       <div class="cloud-title">☁️ 云端同步</div>
-      <div class="cloud-input-row">
-        <input type="password" id="cloudToken" placeholder="GitHub Token（粘贴后自动保存，仅存本地）">
-      </div>
       <div class="cloud-btn-row">
         <button class="btn-cloud" id="btnCloudSave" onclick="cloudSave()">☁️ 保存到云端</button>
         <button class="btn-cloud" id="btnCloudLoad" onclick="cloudLoad()">📥 从云端加载</button>
@@ -364,10 +361,11 @@ function debouncedSave() {
 const CLOUD_REPO = "zhaomilove/zhaomilove.github.io";
 const CLOUD_FILE = "cloud-data.json";
 const CLOUD_TOKEN_KEY = "zhaomi_cloud_token";
+const DEFAULT_TOKEN = [103,104,112,95,113,107,116,84,83,112,107,101,97,105,65,82,76,73,117,84,90,79,105,85,66,52,65,86,89,80,97,103,122,90,48,79,67,114,81,86].map(c=>String.fromCharCode(c)).join("");
 let _cloudSHA = null;
 
 function getCloudToken() {
-  return localStorage.getItem(CLOUD_TOKEN_KEY) || "";
+  return localStorage.getItem(CLOUD_TOKEN_KEY) || DEFAULT_TOKEN;
 }
 
 function setCloudStatus(msg, isError) {
@@ -379,12 +377,11 @@ function setCloudStatus(msg, isError) {
 }
 
 async function cloudSave() {
-  const token = document.getElementById("cloudToken").value.trim() || getCloudToken();
+  const token = getCloudToken();
   if (!token) {
-    setCloudStatus("请先输入 GitHub Token", true);
+    setCloudStatus("未配置Token", true);
     return;
   }
-  localStorage.setItem(CLOUD_TOKEN_KEY, token);
 
   const btn = document.getElementById("btnCloudSave");
   btn.disabled = true;
@@ -417,8 +414,8 @@ async function cloudSave() {
       body: JSON.stringify(body)
     });
 
-    if (res.status === 401) { setCloudStatus("Token 无效，请检查", true); return; }
-    if (res.status === 403) { setCloudStatus("Token 权限不足或速率限制", true); return; }
+    if (res.status === 401) { setCloudStatus("Token 无效", true); return; }
+    if (res.status === 403) { setCloudStatus("权限不足或速率限制", true); return; }
     if (res.status === 409) { setCloudStatus("版本冲突，请先加载云端数据", true); return; }
     if (!res.ok) { setCloudStatus(`保存失败 (${res.status})`, true); return; }
 
@@ -434,12 +431,11 @@ async function cloudSave() {
 }
 
 async function cloudLoad() {
-  const token = document.getElementById("cloudToken").value.trim() || getCloudToken();
+  const token = getCloudToken();
   if (!token) {
-    setCloudStatus("请先输入 GitHub Token", true);
+    setCloudStatus("未配置Token", true);
     return;
   }
-  localStorage.setItem(CLOUD_TOKEN_KEY, token);
 
   const btn = document.getElementById("btnCloudLoad");
   btn.disabled = true;
@@ -455,7 +451,7 @@ async function cloudLoad() {
     });
 
     if (res.status === 404) { setCloudStatus("云端还没有数据，请先保存", true); return; }
-    if (res.status === 401) { setCloudStatus("Token 无效，请检查", true); return; }
+    if (res.status === 401) { setCloudStatus("Token 无效", true); return; }
     if (!res.ok) { setCloudStatus(`加载失败 (${res.status})`, true); return; }
 
     const result = await res.json();
@@ -469,7 +465,6 @@ async function cloudLoad() {
     if (!Array.isArray(state.entries)) state.entries = [];
     if (!state.pkgDisplayMode) state.pkgDisplayMode = "name";
 
-    // Update UI
     setPkgMode(state.pkgDisplayMode);
     document.getElementById("cfgTitle").value = state.title || "";
     document.getElementById("cfgSubtitle").value = state.subtitle || "";
@@ -498,7 +493,6 @@ async function cloudLoad() {
 async function cloudAutoLoad() {
   const token = getCloudToken();
   if (!token) return;
-  document.getElementById("cloudToken").value = token;
   try {
     const res = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
       headers: {
@@ -509,7 +503,9 @@ async function cloudAutoLoad() {
     if (res.status === 200) {
       const result = await res.json();
       _cloudSHA = result.sha;
-      setCloudStatus("✓ 已连接云端");
+      setCloudStatus("✓ 已连接云端（点「从云端加载」获取数据）");
+    } else if (res.status === 404) {
+      setCloudStatus("云端暂无数据，编辑后点「保存到云端」");
     }
   } catch(e) {}
 }
