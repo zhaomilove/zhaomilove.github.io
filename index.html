@@ -89,6 +89,19 @@ body{font-family:'Noto Sans SC',sans-serif;background:#0f0a1a;color:#fff;overflo
 
 .save-status{font-size:11px;color:rgba(100,200,100,0.6);text-align:center;margin-top:4px;min-height:16px}
 
+/* ===== Cloud Sync ===== */
+.cloud-section{background:rgba(255,107,180,0.06);border:1px solid rgba(255,107,180,0.15);border-radius:10px;padding:14px;margin-bottom:12px}
+.cloud-title{font-size:13px;font-weight:600;color:rgba(255,200,230,0.8);margin-bottom:8px;display:flex;align-items:center;gap:6px}
+.cloud-input-row{display:flex;gap:8px;align-items:center;margin-bottom:8px}
+.cloud-input-row input{flex:1;background:rgba(255,255,255,0.08);border:1px solid rgba(255,255,255,0.15);border-radius:8px;padding:8px 10px;color:#fff;font-size:12px;font-family:inherit}
+.cloud-input-row input::placeholder{color:rgba(255,255,255,0.3)}
+.cloud-input-row input:focus{outline:none;border-color:rgba(255,107,180,0.4)}
+.cloud-btn-row{display:flex;gap:8px}
+.btn-cloud{flex:1;background:linear-gradient(135deg,rgba(255,107,180,0.2),rgba(232,123,154,0.2));border:1px solid rgba(255,107,180,0.3);color:rgba(255,200,230,0.9);border-radius:8px;padding:9px;font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;transition:all 0.2s}
+.btn-cloud:hover{background:linear-gradient(135deg,rgba(255,107,180,0.35),rgba(232,123,154,0.35));border-color:rgba(255,107,180,0.5)}
+.btn-cloud:disabled{opacity:0.5;cursor:not-allowed}
+.cloud-status{font-size:11px;text-align:center;margin-top:6px;min-height:14px;color:rgba(255,200,230,0.5)}
+
 /* ===== Preview Area ===== */
 .preview-area{flex:1;background:#0a0515;display:flex;flex-direction:column;align-items:center;overflow-y:auto;padding:20px}
 .preview-area::-webkit-scrollbar{width:6px}
@@ -141,6 +154,18 @@ body{font-family:'Noto Sans SC',sans-serif;background:#0f0a1a;color:#fff;overflo
     <div class="panel-header">
       <h1>甜蜜情侣榜生成器</h1>
       <p>输入信息 · 自动排版 · 960×2240海报</p>
+    </div>
+
+    <div class="cloud-section">
+      <div class="cloud-title">☁️ 云端同步</div>
+      <div class="cloud-input-row">
+        <input type="password" id="cloudToken" placeholder="GitHub Token（粘贴后自动保存，仅存本地）">
+      </div>
+      <div class="cloud-btn-row">
+        <button class="btn-cloud" id="btnCloudSave" onclick="cloudSave()">☁️ 保存到云端</button>
+        <button class="btn-cloud" id="btnCloudLoad" onclick="cloudLoad()">📥 从云端加载</button>
+      </div>
+      <div class="cloud-status" id="cloudStatus"></div>
     </div>
 
     <div class="section">
@@ -333,6 +358,160 @@ let _saveTimer = null;
 function debouncedSave() {
   clearTimeout(_saveTimer);
   _saveTimer = setTimeout(saveData, 500);
+}
+
+// ===== Cloud Sync (GitHub API) =====
+const CLOUD_REPO = "zhaomilove/zhaomilove.github.io";
+const CLOUD_FILE = "cloud-data.json";
+const CLOUD_TOKEN_KEY = "zhaomi_cloud_token";
+let _cloudSHA = null;
+
+function getCloudToken() {
+  return localStorage.getItem(CLOUD_TOKEN_KEY) || "";
+}
+
+function setCloudStatus(msg, isError) {
+  const el = document.getElementById("cloudStatus");
+  if (el) {
+    el.textContent = msg;
+    el.style.color = isError ? "rgba(255,100,100,0.7)" : "rgba(100,200,150,0.7)";
+  }
+}
+
+async function cloudSave() {
+  const token = document.getElementById("cloudToken").value.trim() || getCloudToken();
+  if (!token) {
+    setCloudStatus("请先输入 GitHub Token", true);
+    return;
+  }
+  localStorage.setItem(CLOUD_TOKEN_KEY, token);
+
+  const btn = document.getElementById("btnCloudSave");
+  btn.disabled = true;
+  btn.textContent = "保存中...";
+  setCloudStatus("");
+
+  try {
+    const data = {
+      title: state.title, subtitle: state.subtitle, deco: state.deco,
+      catL: state.catL, catR: state.catR, slots: state.slots, footer: state.footer,
+      banner: state.banner, pkgDisplayMode: state.pkgDisplayMode || "name",
+      entries: state.entries.map(e => ({
+        num: e.num, nickL: e.nickL, nickR: e.nickR,
+        avatarL: e.avatarL, avatarR: e.avatarR, pkg: e.pkg
+      })),
+      savedAt: new Date().toISOString()
+    };
+    const content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
+
+    const body = { message: "cloud sync save", content };
+    if (_cloudSHA) body.sha = _cloudSHA;
+
+    const res = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `token ${token}`,
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
+
+    if (res.status === 401) { setCloudStatus("Token 无效，请检查", true); return; }
+    if (res.status === 403) { setCloudStatus("Token 权限不足或速率限制", true); return; }
+    if (res.status === 409) { setCloudStatus("版本冲突，请先加载云端数据", true); return; }
+    if (!res.ok) { setCloudStatus(`保存失败 (${res.status})`, true); return; }
+
+    const result = await res.json();
+    _cloudSHA = result.content.sha;
+    setCloudStatus("✓ 已保存到云端");
+  } catch(e) {
+    setCloudStatus("网络错误: " + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "☁️ 保存到云端";
+  }
+}
+
+async function cloudLoad() {
+  const token = document.getElementById("cloudToken").value.trim() || getCloudToken();
+  if (!token) {
+    setCloudStatus("请先输入 GitHub Token", true);
+    return;
+  }
+  localStorage.setItem(CLOUD_TOKEN_KEY, token);
+
+  const btn = document.getElementById("btnCloudLoad");
+  btn.disabled = true;
+  btn.textContent = "加载中...";
+  setCloudStatus("");
+
+  try {
+    const res = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
+      headers: {
+        "Authorization": `token ${token}`,
+        "Accept": "application/vnd.github.v3+json"
+      }
+    });
+
+    if (res.status === 404) { setCloudStatus("云端还没有数据，请先保存", true); return; }
+    if (res.status === 401) { setCloudStatus("Token 无效，请检查", true); return; }
+    if (!res.ok) { setCloudStatus(`加载失败 (${res.status})`, true); return; }
+
+    const result = await res.json();
+    _cloudSHA = result.sha;
+
+    const jsonStr = decodeURIComponent(escape(atob(result.content)));
+    const data = JSON.parse(jsonStr);
+    delete data.savedAt;
+
+    Object.assign(state, data);
+    if (!Array.isArray(state.entries)) state.entries = [];
+    if (!state.pkgDisplayMode) state.pkgDisplayMode = "name";
+
+    // Update UI
+    setPkgMode(state.pkgDisplayMode);
+    document.getElementById("cfgTitle").value = state.title || "";
+    document.getElementById("cfgSubtitle").value = state.subtitle || "";
+    document.getElementById("cfgDeco").value = state.deco || "";
+    document.getElementById("cfgCatL").value = state.catL || "";
+    document.getElementById("cfgCatR").value = state.catR || "";
+    document.getElementById("cfgSlots").value = state.slots || 10;
+    document.getElementById("cfgFooter").value = state.footer || "";
+    document.getElementById("cfgBanner").value = "";
+    document.getElementById("bannerName").textContent = state.banner ? "（云端图片）" : "未选择";
+    document.getElementById("cfgBannerClear").style.display = state.banner ? "" : "none";
+
+    renderEntries();
+    debouncedRender();
+    saveData();
+
+    setCloudStatus("✓ 已从云端加载");
+  } catch(e) {
+    setCloudStatus("网络错误: " + e.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = "📥 从云端加载";
+  }
+}
+
+async function cloudAutoLoad() {
+  const token = getCloudToken();
+  if (!token) return;
+  document.getElementById("cloudToken").value = token;
+  try {
+    const res = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
+      headers: {
+        "Authorization": `token ${token}`,
+        "Accept": "application/vnd.github.v3+json"
+      }
+    });
+    if (res.status === 200) {
+      const result = await res.json();
+      _cloudSHA = result.sha;
+      setCloudStatus("✓ 已连接云端");
+    }
+  } catch(e) {}
 }
 
 // ===== Image Cache =====
@@ -1453,6 +1632,7 @@ async function init() {
   if (state.banner) document.getElementById("cfgBannerClear").style.display = "";
   renderEntries();
   await renderPoster();
+  cloudAutoLoad();
 }
 
 init();
