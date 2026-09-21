@@ -1235,11 +1235,7 @@ function drawEmptyEntry(ctx, slotNum, yCenter, avatarR, entryH) {
   // Dreamy colors for empty state (softer/faded)
   const fadedColors = ["rgba(255,158,199,0.5)", "rgba(232,123,154,0.4)", "rgba(201,168,224,0.35)"];
 
-  // Empty number - dreamy text, bold
-  const numStr = `No.${String(slotNum).padStart(3, "0")}`;
-  drawDreamyText(ctx, numStr, numX, yCenter,
-    "bold 32px 'Parisienne', 'Great Vibes', cursive",
-    fadedColors, 120);
+  // 空余席位不显示编码
 
   // "虚位以待" nicknames - dreamy, faded
   drawDreamyText(ctx, "虚位以待", nickLX - 30, yCenter,
