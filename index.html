@@ -443,22 +443,29 @@ async function cloudLoad() {
   setCloudStatus("");
 
   try {
-    const res = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
+    // Step 1: Get file metadata (SHA, download_url) via API
+    const metaRes = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
       headers: {
         "Authorization": `token ${token}`,
         "Accept": "application/vnd.github.v3+json"
       }
     });
 
-    if (res.status === 404) { setCloudStatus("云端还没有数据，请先保存", true); return; }
-    if (res.status === 401) { setCloudStatus("Token 无效", true); return; }
-    if (!res.ok) { setCloudStatus(`加载失败 (${res.status})`, true); return; }
+    if (metaRes.status === 404) { setCloudStatus("云端还没有数据，请先保存", true); return; }
+    if (metaRes.status === 401) { setCloudStatus("Token 无效", true); return; }
+    if (!metaRes.ok) { setCloudStatus(`加载失败 (${metaRes.status})`, true); return; }
 
-    const result = await res.json();
-    _cloudSHA = result.sha;
+    const meta = await metaRes.json();
+    _cloudSHA = meta.sha;
 
-    const jsonStr = decodeURIComponent(escape(atob(result.content)));
-    const data = JSON.parse(jsonStr);
+    // Step 2: Download raw content via download_url (supports large files)
+    // GitHub API doesn't return content for files > 1MB
+    const rawUrl = meta.download_url || `https://raw.githubusercontent.com/${CLOUD_REPO}/main/${CLOUD_FILE}`;
+    const rawRes = await fetch(rawUrl);
+    if (!rawRes.ok) { setCloudStatus(`下载失败 (${rawRes.status})`, true); return; }
+
+    const text = await rawRes.text();
+    const data = JSON.parse(text);
     delete data.savedAt;
 
     Object.assign(state, data);
