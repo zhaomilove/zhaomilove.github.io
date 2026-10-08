@@ -401,18 +401,36 @@ async function cloudSave() {
     };
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
 
-    const body = { message: "cloud sync save", content };
-    if (_cloudSHA) body.sha = _cloudSHA;
+    const doPut = async (sha) => {
+      const body = { message: "cloud sync save", content };
+      if (sha) body.sha = sha;
+      return await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `token ${token}`,
+          "Accept": "application/vnd.github.v3+json",
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify(body)
+      });
+    };
 
-    const res = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
-      method: "PUT",
-      headers: {
-        "Authorization": `token ${token}`,
-        "Accept": "application/vnd.github.v3+json",
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify(body)
-    });
+    let res = await doPut(_cloudSHA);
+
+    // 409 冲突：本地 SHA 过期，自动获取最新 SHA 重试一次
+    if (res.status === 409) {
+      setCloudStatus("同步中...");
+      try {
+        const metaRes = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
+          headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" }
+        });
+        if (metaRes.ok) {
+          const meta = await metaRes.json();
+          _cloudSHA = meta.sha;
+          res = await doPut(_cloudSHA);
+        }
+      } catch (e) { /* ignore, fall through to error handling */ }
+    }
 
     if (res.status === 401) { setCloudStatus("Token 无效", true); return; }
     if (res.status === 403) { setCloudStatus("权限不足或速率限制", true); return; }
@@ -458,13 +476,37 @@ async function cloudLoad() {
     const meta = await metaRes.json();
     _cloudSHA = meta.sha;
 
-    // Step 2: Download raw content via download_url (supports large files)
-    // GitHub API doesn't return content for files > 1MB
-    const rawUrl = meta.download_url || `https://raw.githubusercontent.com/${CLOUD_REPO}/main/${CLOUD_FILE}`;
-    const rawRes = await fetch(rawUrl);
-    if (!rawRes.ok) { setCloudStatus(`下载失败 (${rawRes.status})`, true); return; }
+    // Step 2: 获取文件内容
+    // 优先用 API 返回的 content（< 1MB 时直接有），否则用 Git Blobs API（按 SHA 获取，不走 CDN 缓存）
+    // raw.githubusercontent.com 有 max-age=300 缓存，会导致加载到旧版本，故不用
+    let text = null;
+    if (meta.content && meta.encoding === "base64") {
+      try {
+        const bin = atob(meta.content);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        text = new TextDecoder("utf-8").decode(bytes);
+      } catch (e) { text = null; }
+    }
+    if (!text) {
+      // 文件 > 1MB，用 Git Blobs API 按 SHA 获取（无 CDN 缓存，保证最新）
+      const blobRes = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/git/blobs/${meta.sha}`, {
+        headers: {
+          "Authorization": `token ${token}`,
+          "Accept": "application/vnd.github.v3+json"
+        }
+      });
+      if (!blobRes.ok) { setCloudStatus(`下载失败 (${blobRes.status})`, true); return; }
+      const blob = await blobRes.json();
+      if (blob.content) {
+        const bin = atob(blob.content);
+        const bytes = new Uint8Array(bin.length);
+        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+        text = new TextDecoder("utf-8").decode(bytes);
+      }
+    }
+    if (!text) { setCloudStatus("下载失败：内容为空", true); return; }
 
-    const text = await rawRes.text();
     const data = JSON.parse(text);
     delete data.savedAt;
 
@@ -1644,3 +1686,4 @@ window.addEventListener("resize", () => {
 </script>
 </body>
 </html>
+
