@@ -1209,7 +1209,8 @@ function drawCategoryTabs(ctx) {
 function drawEntries(ctx) {
   const slots = Math.max(1, state.slots);
   const entryH = ENTRIES_H / slots;
-  const avatarRadius = Math.min(56, entryH * 0.4);
+  // 头像大小随行高动态增长，上限 78（直径 156），少量行时更大更铺满
+  const avatarRadius = Math.min(78, entryH * 0.45);
 
   for (let i = 0; i < slots; i++) {
     const entry = state.entries[i];
@@ -1241,13 +1242,13 @@ function drawEntries(ctx) {
 }
 
 function drawEntry(ctx, entry, yCenter, avatarR, entryH) {
-  // Positions - nicknames closer to avatars
+  // Positions - avatars 间距加宽以容纳更大头像
   const numX = 85;
-  const nickLX = 330;    // right-aligned, closer to left avatar
-  const avatarLX = 400;
-  const avatarRX = 560;
-  const nickRX = 630;    // left-aligned, closer to right avatar
-  const pkgX = 855;
+  const nickLX = 310;    // 右对齐，靠近左头像
+  const avatarLX = 380;
+  const avatarRX = 580;
+  const nickRX = 650;    // 左对齐，靠近右头像
+  const pkgX = 860;
 
   // Deepened color palettes - sweet & vivid
   const dreamyColors = ["#E6358A", "#D12E6E", "#A855C4"]; // deep pink → deep rose → deep lavender
@@ -1283,21 +1284,37 @@ function drawEntry(ctx, entry, yCenter, avatarR, entryH) {
       dreamyColors, 120);
   }
 
-  // Package value - dreamy text, slightly smaller
+  // 套餐名 - 可爱艺术字（ZCOOL KuaiLe），带♥前缀
   const pkgText = formatPkg(entry.pkg);
   if (pkgText) {
-    drawDreamyText(ctx, pkgText, pkgX, yCenter,
-      "30px 'Dancing Script', 'Noto Sans SC', sans-serif",
-      dreamyColors, 120);
+    ctx.save();
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+    // 文字光晕
+    ctx.shadowColor = "rgba(255,107,180,0.5)";
+    ctx.shadowBlur = 8;
+    ctx.font = `bold ${Math.round(avatarR * 0.42)}px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif`;
+    // 渐变填充
+    const pkgGrad = ctx.createLinearGradient(pkgX, yCenter - 16, pkgX, yCenter + 16);
+    pkgGrad.addColorStop(0, "#FF6BB4");
+    pkgGrad.addColorStop(0.5, "#E6358A");
+    pkgGrad.addColorStop(1, "#A855C4");
+    ctx.fillStyle = pkgGrad;
+    ctx.fillText(pkgText, pkgX, yCenter);
+    // 白色描边
+    ctx.lineWidth = 2;
+    ctx.strokeStyle = "rgba(255,255,255,0.85)";
+    ctx.strokeText(pkgText, pkgX, yCenter);
+    ctx.restore();
   }
 }
 
 function drawEmptyEntry(ctx, slotNum, yCenter, avatarR, entryH) {
-  const avatarLX = 400;
-  const avatarRX = 560;
-  const nickLX = 330;
-  const nickRX = 630;
-  const pkgX = 855;
+  const avatarLX = 380;
+  const avatarRX = 580;
+  const nickLX = 310;
+  const nickRX = 650;
+  const pkgX = 860;
   const numX = 85;
 
   // Deepened colors for empty state (softer/faded but deeper)
@@ -1318,10 +1335,14 @@ function drawEmptyEntry(ctx, slotNum, yCenter, avatarR, entryH) {
   drawHeartConnection(ctx, avatarLX + avatarR + 6, avatarRX - avatarR - 6, yCenter, entryH);
   drawOrnateAvatar(ctx, avatarRX, yCenter, avatarR, null, true);
 
-  // Empty package - dreamy text
-  drawDreamyText(ctx, "♥ ---", pkgX, yCenter,
-    "30px 'Dancing Script', 'Noto Sans SC', sans-serif",
-    fadedColors, 120);
+  // Empty package - cute font, faded
+  ctx.save();
+  ctx.textAlign = "center";
+  ctx.textBaseline = "middle";
+  ctx.font = `bold ${Math.round(avatarR * 0.42)}px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif`;
+  ctx.fillStyle = "rgba(168,85,196,0.35)";
+  ctx.fillText("♥ ---", pkgX, yCenter);
+  ctx.restore();
 }
 
 function drawFooter(ctx) {
