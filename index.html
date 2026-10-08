@@ -476,40 +476,63 @@ async function cloudLoad() {
     const meta = await metaRes.json();
     _cloudSHA = meta.sha;
 
-    // Step 2: 获取文件内容
-    // 方案 A：用 API 返回的 content（< 1MB 时直接有，无需额外请求）
+    // 带超时的 fetch 工具
+    const fetchTimeout = (url, opts, ms) => Promise.race([
+      fetch(url, opts),
+      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))
+    ]);
+
+    // 高效 base64 → UTF-8 文本解码（比 escape/unescape 省内存）
+    const b64ToText = (b64) => {
+      const bin = atob(b64);
+      const bytes = new Uint8Array(bin.length);
+      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
+      return new TextDecoder("utf-8").decode(bytes);
+    };
+
     let text = null;
+
+    // 方案 A：API 直接返回 content（< 1MB 时）
     if (meta.content && meta.encoding === "base64") {
-      try {
-        text = decodeURIComponent(escape(atob(meta.content)));
-      } catch (e) { text = null; }
+      try { text = b64ToText(meta.content); } catch (e) { text = null; }
     }
 
-    // 方案 B：raw URL + 时间戳绕过 CDN 缓存（直接返回 JSON 文本，内存友好，手机端不卡）
+    // 方案 B：Git Blobs API（走 api.github.com，国内比 raw.githubusercontent 稳定）
     if (!text) {
+      setCloudStatus("下载中...");
+      try {
+        const blobRes = await fetchTimeout(
+          `https://api.github.com/repos/${CLOUD_REPO}/git/blobs/${meta.sha}`,
+          { headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" } },
+          30000
+        );
+        if (blobRes.ok) {
+          const blob = await blobRes.json();
+          if (blob.content) text = b64ToText(blob.content);
+        }
+      } catch (e) {
+        console.warn("Blobs API 失败:", e.message);
+        text = null;
+      }
+    }
+
+    // 方案 C：raw URL + 时间戳（兜底，直接返回 JSON 文本省内存）
+    if (!text) {
+      setCloudStatus("重试下载...");
       const rawUrl = (meta.download_url || `https://raw.githubusercontent.com/${CLOUD_REPO}/main/${CLOUD_FILE}`)
         + "?t=" + Date.now();
       try {
-        const rawRes = await fetch(rawUrl, { cache: "no-store" });
+        const rawRes = await fetchTimeout(rawUrl, {}, 30000);
         if (rawRes.ok) text = await rawRes.text();
-      } catch (e) { text = null; }
+      } catch (e) {
+        console.warn("raw URL 失败:", e.message);
+        text = null;
+      }
     }
 
-    // 方案 C：兜底用 Git Blobs API 按 SHA 获取（无缓存，但大文件 base64 解码耗内存）
-    if (!text) {
-      try {
-        const blobRes = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/git/blobs/${meta.sha}`, {
-          headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" }
-        });
-        if (blobRes.ok) {
-          const blob = await blobRes.json();
-          if (blob.content) text = decodeURIComponent(escape(atob(blob.content)));
-        }
-      } catch (e) { text = null; }
-    }
+    if (!text) { setCloudStatus("下载失败，请检查网络后重试", true); return; }
 
-    if (!text) { setCloudStatus("下载失败，请稍后重试", true); return; }
-
+    setCloudStatus("解析数据...");
     const data = JSON.parse(text);
     delete data.savedAt;
 
@@ -1577,19 +1600,39 @@ function setPkgMode(mode) {
   debouncedSave();
 }
 
+// 图片压缩：缩放到 maxSize 以内，输出 JPEG
+function compressImage(file, maxSize, callback) {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const img = new Image();
+    img.onload = function() {
+      let w = img.naturalWidth || img.width;
+      let h = img.naturalHeight || img.height;
+      if (w > maxSize || h > maxSize) {
+        if (w >= h) { h = Math.round(h * maxSize / w); w = maxSize; }
+        else { w = Math.round(w * maxSize / h); h = maxSize; }
+      }
+      const canvas = document.createElement("canvas");
+      canvas.width = w; canvas.height = h;
+      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
+      callback(canvas.toDataURL("image/jpeg", 0.82));
+    };
+    img.onerror = function() { callback(e.target.result); }; // 解码失败就用原图
+    img.src = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
 function handleAvatar(idx, side, input) {
   const file = input.files[0];
   if (!file) return;
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const dataUrl = e.target.result;
+  compressImage(file, 256, dataUrl => {
     if (side === "L") state.entries[idx].avatarL = dataUrl;
     else state.entries[idx].avatarR = dataUrl;
     updateAvatarPreview(`avatar${side}_${idx}`, dataUrl);
     debouncedRender();
     debouncedSave();
-  };
-  reader.readAsDataURL(file);
+  });
 }
 
 function addEntry() {
@@ -1648,13 +1691,11 @@ function bindConfig() {
     if (!file) return;
     document.getElementById("bannerName").textContent = file.name;
     document.getElementById("cfgBannerClear").style.display = "";
-    const reader = new FileReader();
-    reader.onload = function(e) {
-      state.banner = e.target.result;
+    compressImage(file, 960, dataUrl => {
+      state.banner = dataUrl;
       debouncedRender();
       debouncedSave();
-    };
-    reader.readAsDataURL(file);
+    });
   });
 }
 
