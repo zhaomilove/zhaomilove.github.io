@@ -477,35 +477,38 @@ async function cloudLoad() {
     _cloudSHA = meta.sha;
 
     // Step 2: 获取文件内容
-    // 优先用 API 返回的 content（< 1MB 时直接有），否则用 Git Blobs API（按 SHA 获取，不走 CDN 缓存）
-    // raw.githubusercontent.com 有 max-age=300 缓存，会导致加载到旧版本，故不用
+    // 方案 A：用 API 返回的 content（< 1MB 时直接有，无需额外请求）
     let text = null;
     if (meta.content && meta.encoding === "base64") {
       try {
-        const bin = atob(meta.content);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        text = new TextDecoder("utf-8").decode(bytes);
+        text = decodeURIComponent(escape(atob(meta.content)));
       } catch (e) { text = null; }
     }
+
+    // 方案 B：raw URL + 时间戳绕过 CDN 缓存（直接返回 JSON 文本，内存友好，手机端不卡）
     if (!text) {
-      // 文件 > 1MB，用 Git Blobs API 按 SHA 获取（无 CDN 缓存，保证最新）
-      const blobRes = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/git/blobs/${meta.sha}`, {
-        headers: {
-          "Authorization": `token ${token}`,
-          "Accept": "application/vnd.github.v3+json"
-        }
-      });
-      if (!blobRes.ok) { setCloudStatus(`下载失败 (${blobRes.status})`, true); return; }
-      const blob = await blobRes.json();
-      if (blob.content) {
-        const bin = atob(blob.content);
-        const bytes = new Uint8Array(bin.length);
-        for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-        text = new TextDecoder("utf-8").decode(bytes);
-      }
+      const rawUrl = (meta.download_url || `https://raw.githubusercontent.com/${CLOUD_REPO}/main/${CLOUD_FILE}`)
+        + "?t=" + Date.now();
+      try {
+        const rawRes = await fetch(rawUrl, { cache: "no-store" });
+        if (rawRes.ok) text = await rawRes.text();
+      } catch (e) { text = null; }
     }
-    if (!text) { setCloudStatus("下载失败：内容为空", true); return; }
+
+    // 方案 C：兜底用 Git Blobs API 按 SHA 获取（无缓存，但大文件 base64 解码耗内存）
+    if (!text) {
+      try {
+        const blobRes = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/git/blobs/${meta.sha}`, {
+          headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" }
+        });
+        if (blobRes.ok) {
+          const blob = await blobRes.json();
+          if (blob.content) text = decodeURIComponent(escape(atob(blob.content)));
+        }
+      } catch (e) { text = null; }
+    }
+
+    if (!text) { setCloudStatus("下载失败，请稍后重试", true); return; }
 
     const data = JSON.parse(text);
     delete data.savedAt;
