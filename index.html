@@ -6,7 +6,7 @@
 <title>甜蜜情侣榜生成器</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Great+Vibes&family=Dancing+Script:wght@600;700&family=Parisienne&family=Tangerine:wght@700&family=Alex+Brush&family=Long+Cang&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Ma+Shan+Zheng&family=ZCOOL+KuaiLe&family=ZCOOL+QingKe+HuangYou&family=Noto+Sans+SC:wght@300;400;500;700;900&family=Great+Vibes&family=Dancing+Script:wght@600;700&family=Parisienne&family=Tangerine:wght@700&family=Alex+Brush&family=Long+Cang&family=Liu+Jian+Mao+Cao&display=swap" rel="stylesheet">
 <style>
 *{margin:0;padding:0;box-sizing:border-box}
 :root{--pink:#E87B9A;--pink-d:#D45A8A;--pink-l:#FFB6C1;--pink-b:#FF69B4;--purple:#C9A8E0;--purple-d:#9B7BB8;--gold:#D4AF37;--gold-l:#FFD700}
@@ -552,7 +552,9 @@ async function ensureFonts() {
     await document.fonts.ready;
     await Promise.all([
       document.fonts.load("120px 'ZCOOL KuaiLe'"),
-      document.fonts.load("50px 'Great Vibes'"),
+      document.fonts.load("120px 'ZCOOL QingKe HuangYou'"),
+      document.fonts.load("64px 'Dancing Script'"),
+      document.fonts.load("64px 'Great Vibes'"),
       document.fonts.load("42px 'Parisienne'"),
       document.fonts.load("38px 'ZCOOL KuaiLe'"),
       document.fonts.load("32px 'Dancing Script'"),
@@ -1068,21 +1070,21 @@ function drawBanner(ctx) {
     ctx.restore();
   });
 
-  // Decorative English text - LARGER
+  // Decorative English text - DOUBLED SIZE
   if (state.deco) {
     ctx.save();
     ctx.fillStyle = "rgba(200,80,120,0.75)";
-    ctx.font = "32px 'Dancing Script', cursive";
+    ctx.font = "64px 'Dancing Script', cursive";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
-    ctx.fillText(state.deco, W/2, 180);
+    ctx.fillText(state.deco, W/2, 150);
     ctx.restore();
   }
 
-  // Main title - MUCH LARGER, artistic font
+  // Main title - ornate gothic Chinese font
   if (state.title) {
     ctx.save();
-    ctx.font = "120px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif";
+    ctx.font = "120px 'ZCOOL QingKe HuangYou', 'Noto Sans SC', sans-serif";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "rgba(0,0,0,0.15)";
@@ -1090,21 +1092,21 @@ function drawBanner(ctx) {
     ctx.restore();
 
     drawStrokedText(ctx, state.title, W/2, 290,
-      "120px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif",
+      "120px 'ZCOOL QingKe HuangYou', 'Noto Sans SC', sans-serif",
       "#FFFFFF", COLORS.pinkDark, 14);
     drawStrokedText(ctx, state.title, W/2, 290,
-      "120px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif",
+      "120px 'ZCOOL QingKe HuangYou', 'Noto Sans SC', sans-serif",
       "rgba(255,255,255,0)", COLORS.pinkMain, 6);
   }
 
-  // Subtitle - LARGER, elegant calligraphy
+  // Subtitle - moved down, enlarged
   if (state.subtitle) {
     ctx.save();
-    ctx.font = "50px 'Great Vibes', cursive";
+    ctx.font = "64px 'Great Vibes', cursive";
     ctx.textAlign = "center";
     ctx.textBaseline = "middle";
     ctx.fillStyle = "rgba(200,60,100,0.9)";
-    ctx.fillText(state.subtitle, W/2, 370);
+    ctx.fillText(state.subtitle, W/2, 405);
     ctx.restore();
   }
 
@@ -1113,12 +1115,12 @@ function drawBanner(ctx) {
   ctx.strokeStyle = "rgba(255,255,255,0.3)";
   ctx.lineWidth = 1;
   ctx.beginPath();
-  ctx.moveTo(W/2 - 120, 405);
-  ctx.lineTo(W/2 - 20, 405);
-  ctx.moveTo(W/2 + 20, 405);
-  ctx.lineTo(W/2 + 120, 405);
+  ctx.moveTo(W/2 - 120, 445);
+  ctx.lineTo(W/2 - 20, 445);
+  ctx.moveTo(W/2 + 20, 445);
+  ctx.lineTo(W/2 + 120, 445);
   ctx.stroke();
-  traceHeart(ctx, W/2, 405, 12);
+  traceHeart(ctx, W/2, 445, 12);
   ctx.fillStyle = "rgba(255,255,255,0.5)";
   ctx.fill();
   ctx.restore();
