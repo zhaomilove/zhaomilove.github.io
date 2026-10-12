@@ -401,36 +401,18 @@ async function cloudSave() {
     };
     const content = btoa(unescape(encodeURIComponent(JSON.stringify(data))));
 
-    const doPut = async (sha) => {
-      const body = { message: "cloud sync save", content };
-      if (sha) body.sha = sha;
-      return await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
-        method: "PUT",
-        headers: {
-          "Authorization": `token ${token}`,
-          "Accept": "application/vnd.github.v3+json",
-          "Content-Type": "application/json"
-        },
-        body: JSON.stringify(body)
-      });
-    };
+    const body = { message: "cloud sync save", content };
+    if (_cloudSHA) body.sha = _cloudSHA;
 
-    let res = await doPut(_cloudSHA);
-
-    // 409 冲突：本地 SHA 过期，自动获取最新 SHA 重试一次
-    if (res.status === 409) {
-      setCloudStatus("同步中...");
-      try {
-        const metaRes = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
-          headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" }
-        });
-        if (metaRes.ok) {
-          const meta = await metaRes.json();
-          _cloudSHA = meta.sha;
-          res = await doPut(_cloudSHA);
-        }
-      } catch (e) { /* ignore, fall through to error handling */ }
-    }
+    const res = await fetch(`https://api.github.com/repos/${CLOUD_REPO}/contents/${CLOUD_FILE}`, {
+      method: "PUT",
+      headers: {
+        "Authorization": `token ${token}`,
+        "Accept": "application/vnd.github.v3+json",
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify(body)
+    });
 
     if (res.status === 401) { setCloudStatus("Token 无效", true); return; }
     if (res.status === 403) { setCloudStatus("权限不足或速率限制", true); return; }
@@ -476,63 +458,13 @@ async function cloudLoad() {
     const meta = await metaRes.json();
     _cloudSHA = meta.sha;
 
-    // 带超时的 fetch 工具
-    const fetchTimeout = (url, opts, ms) => Promise.race([
-      fetch(url, opts),
-      new Promise((_, rej) => setTimeout(() => rej(new Error("timeout")), ms))
-    ]);
+    // Step 2: Download raw content via download_url (supports large files)
+    // GitHub API doesn't return content for files > 1MB
+    const rawUrl = meta.download_url || `https://raw.githubusercontent.com/${CLOUD_REPO}/main/${CLOUD_FILE}`;
+    const rawRes = await fetch(rawUrl);
+    if (!rawRes.ok) { setCloudStatus(`下载失败 (${rawRes.status})`, true); return; }
 
-    // 高效 base64 → UTF-8 文本解码（比 escape/unescape 省内存）
-    const b64ToText = (b64) => {
-      const bin = atob(b64);
-      const bytes = new Uint8Array(bin.length);
-      for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i);
-      return new TextDecoder("utf-8").decode(bytes);
-    };
-
-    let text = null;
-
-    // 方案 A：API 直接返回 content（< 1MB 时）
-    if (meta.content && meta.encoding === "base64") {
-      try { text = b64ToText(meta.content); } catch (e) { text = null; }
-    }
-
-    // 方案 B：Git Blobs API（走 api.github.com，国内比 raw.githubusercontent 稳定）
-    if (!text) {
-      setCloudStatus("下载中...");
-      try {
-        const blobRes = await fetchTimeout(
-          `https://api.github.com/repos/${CLOUD_REPO}/git/blobs/${meta.sha}`,
-          { headers: { "Authorization": `token ${token}`, "Accept": "application/vnd.github.v3+json" } },
-          30000
-        );
-        if (blobRes.ok) {
-          const blob = await blobRes.json();
-          if (blob.content) text = b64ToText(blob.content);
-        }
-      } catch (e) {
-        console.warn("Blobs API 失败:", e.message);
-        text = null;
-      }
-    }
-
-    // 方案 C：raw URL + 时间戳（兜底，直接返回 JSON 文本省内存）
-    if (!text) {
-      setCloudStatus("重试下载...");
-      const rawUrl = (meta.download_url || `https://raw.githubusercontent.com/${CLOUD_REPO}/main/${CLOUD_FILE}`)
-        + "?t=" + Date.now();
-      try {
-        const rawRes = await fetchTimeout(rawUrl, {}, 30000);
-        if (rawRes.ok) text = await rawRes.text();
-      } catch (e) {
-        console.warn("raw URL 失败:", e.message);
-        text = null;
-      }
-    }
-
-    if (!text) { setCloudStatus("下载失败，请检查网络后重试", true); return; }
-
-    setCloudStatus("解析数据...");
+    const text = await rawRes.text();
     const data = JSON.parse(text);
     delete data.savedAt;
 
@@ -1209,8 +1141,7 @@ function drawCategoryTabs(ctx) {
 function drawEntries(ctx) {
   const slots = Math.max(1, state.slots);
   const entryH = ENTRIES_H / slots;
-  // 头像大小随行高动态增长，上限 78（直径 156），少量行时更大更铺满
-  const avatarRadius = Math.min(78, entryH * 0.45);
+  const avatarRadius = Math.min(56, entryH * 0.4);
 
   for (let i = 0; i < slots; i++) {
     const entry = state.entries[i];
@@ -1242,13 +1173,13 @@ function drawEntries(ctx) {
 }
 
 function drawEntry(ctx, entry, yCenter, avatarR, entryH) {
-  // Positions - avatars 间距加宽以容纳更大头像
+  // Positions - nicknames closer to avatars
   const numX = 85;
-  const nickLX = 310;    // 右对齐，靠近左头像
-  const avatarLX = 380;
-  const avatarRX = 580;
-  const nickRX = 650;    // 左对齐，靠近右头像
-  const pkgX = 860;
+  const nickLX = 330;    // right-aligned, closer to left avatar
+  const avatarLX = 400;
+  const avatarRX = 560;
+  const nickRX = 630;    // left-aligned, closer to right avatar
+  const pkgX = 855;
 
   // Deepened color palettes - sweet & vivid
   const dreamyColors = ["#E6358A", "#D12E6E", "#A855C4"]; // deep pink → deep rose → deep lavender
@@ -1284,37 +1215,21 @@ function drawEntry(ctx, entry, yCenter, avatarR, entryH) {
       dreamyColors, 120);
   }
 
-  // 套餐名 - 可爱艺术字（ZCOOL KuaiLe），带♥前缀
+  // Package value - ornate calligraphy, slightly larger
   const pkgText = formatPkg(entry.pkg);
   if (pkgText) {
-    ctx.save();
-    ctx.textAlign = "center";
-    ctx.textBaseline = "middle";
-    // 文字光晕
-    ctx.shadowColor = "rgba(255,107,180,0.5)";
-    ctx.shadowBlur = 8;
-    ctx.font = `bold ${Math.round(avatarR * 0.42)}px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif`;
-    // 渐变填充
-    const pkgGrad = ctx.createLinearGradient(pkgX, yCenter - 16, pkgX, yCenter + 16);
-    pkgGrad.addColorStop(0, "#FF6BB4");
-    pkgGrad.addColorStop(0.5, "#E6358A");
-    pkgGrad.addColorStop(1, "#A855C4");
-    ctx.fillStyle = pkgGrad;
-    ctx.fillText(pkgText, pkgX, yCenter);
-    // 白色描边
-    ctx.lineWidth = 2;
-    ctx.strokeStyle = "rgba(255,255,255,0.85)";
-    ctx.strokeText(pkgText, pkgX, yCenter);
-    ctx.restore();
+    drawDreamyText(ctx, pkgText, pkgX, yCenter,
+      "36px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+      dreamyColors, 120);
   }
 }
 
 function drawEmptyEntry(ctx, slotNum, yCenter, avatarR, entryH) {
-  const avatarLX = 380;
-  const avatarRX = 580;
-  const nickLX = 310;
-  const nickRX = 650;
-  const pkgX = 860;
+  const avatarLX = 400;
+  const avatarRX = 560;
+  const nickLX = 330;
+  const nickRX = 630;
+  const pkgX = 855;
   const numX = 85;
 
   // Deepened colors for empty state (softer/faded but deeper)
@@ -1335,14 +1250,10 @@ function drawEmptyEntry(ctx, slotNum, yCenter, avatarR, entryH) {
   drawHeartConnection(ctx, avatarLX + avatarR + 6, avatarRX - avatarR - 6, yCenter, entryH);
   drawOrnateAvatar(ctx, avatarRX, yCenter, avatarR, null, true);
 
-  // Empty package - cute font, faded
-  ctx.save();
-  ctx.textAlign = "center";
-  ctx.textBaseline = "middle";
-  ctx.font = `bold ${Math.round(avatarR * 0.42)}px 'ZCOOL KuaiLe', 'Noto Sans SC', sans-serif`;
-  ctx.fillStyle = "rgba(168,85,196,0.35)";
-  ctx.fillText("♥ ---", pkgX, yCenter);
-  ctx.restore();
+  // Empty package - ornate calligraphy, slightly larger
+  drawDreamyText(ctx, "♥ ---", pkgX, yCenter,
+    "36px 'Ma Shan Zheng', 'Noto Sans SC', sans-serif",
+    fadedColors, 120);
 }
 
 function drawFooter(ctx) {
@@ -1621,39 +1532,19 @@ function setPkgMode(mode) {
   debouncedSave();
 }
 
-// 图片压缩：缩放到 maxSize 以内，输出 JPEG
-function compressImage(file, maxSize, callback) {
-  const reader = new FileReader();
-  reader.onload = function(e) {
-    const img = new Image();
-    img.onload = function() {
-      let w = img.naturalWidth || img.width;
-      let h = img.naturalHeight || img.height;
-      if (w > maxSize || h > maxSize) {
-        if (w >= h) { h = Math.round(h * maxSize / w); w = maxSize; }
-        else { w = Math.round(w * maxSize / h); h = maxSize; }
-      }
-      const canvas = document.createElement("canvas");
-      canvas.width = w; canvas.height = h;
-      canvas.getContext("2d").drawImage(img, 0, 0, w, h);
-      callback(canvas.toDataURL("image/jpeg", 0.82));
-    };
-    img.onerror = function() { callback(e.target.result); }; // 解码失败就用原图
-    img.src = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
 function handleAvatar(idx, side, input) {
   const file = input.files[0];
   if (!file) return;
-  compressImage(file, 256, dataUrl => {
+  const reader = new FileReader();
+  reader.onload = function(e) {
+    const dataUrl = e.target.result;
     if (side === "L") state.entries[idx].avatarL = dataUrl;
     else state.entries[idx].avatarR = dataUrl;
     updateAvatarPreview(`avatar${side}_${idx}`, dataUrl);
     debouncedRender();
     debouncedSave();
-  });
+  };
+  reader.readAsDataURL(file);
 }
 
 function addEntry() {
@@ -1712,11 +1603,13 @@ function bindConfig() {
     if (!file) return;
     document.getElementById("bannerName").textContent = file.name;
     document.getElementById("cfgBannerClear").style.display = "";
-    compressImage(file, 960, dataUrl => {
-      state.banner = dataUrl;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      state.banner = e.target.result;
       debouncedRender();
       debouncedSave();
-    });
+    };
+    reader.readAsDataURL(file);
   });
 }
 
@@ -1751,4 +1644,3 @@ window.addEventListener("resize", () => {
 </script>
 </body>
 </html>
-
